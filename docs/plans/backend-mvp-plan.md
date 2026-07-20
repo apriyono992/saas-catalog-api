@@ -121,47 +121,57 @@ erDiagram
 
 ## 7. API Surface
 
-### 7.1 Public Store API (no-auth, tenant resolved via domain)
+> Route prefix mengikuti pemisahan folder presentation layer (publik vs CMS) — detail lengkap struktur folder, guard/middleware map, dan alasan pemisahan ada di [`folder-structure.md`](./folder-structure.md).
+
+### 7.1 Public Store API (prefix `/store`, no-auth, tenant resolved via domain)
 - `GET /store` — informasi store (nama, kontak, sosial media)
 - `GET /store/resolve` — resolve tenant by `Host` header (dipakai FE Store untuk SSR/bootstrap)
-- `GET /products` — list produk (pagination, filter kategori, search)
-- `GET /products/:slug` — detail produk (termasuk `variantTypes` + `options`)
-- `GET /products/:slug/related` — produk terkait
-- `POST /marketplace/:linkId/redirect` — redirect + catat klik analytics
+- `GET /store/products` — list produk (pagination, filter kategori, search)
+- `GET /store/products/:slug` — detail produk (termasuk `variantTypes` + `options`)
+- `GET /store/products/:slug/related` — produk terkait
+- `POST /store/marketplace/:linkId/redirect` — redirect + catat klik analytics
 
-### 7.2 CMS API (auth: admin, scoped ke tenant dari JWT)
-- `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
-- `GET/PATCH /profile`, `POST /profile/change-password`
-- `GET/POST/PATCH/DELETE /products`, `POST /products/:id/publish`, `POST /products/:id/archive`
-- `POST/DELETE /products/:id/images`, `PATCH /products/:id/images/reorder`
-- `GET/POST/PATCH/DELETE /products/:id/variant-types`
-- `GET/POST/PATCH/DELETE /products/:id/variant-types/:typeId/options`
-- `GET/POST/PATCH/DELETE /products/:id/marketplace-links`
-- `GET/POST/PATCH/DELETE /categories`
-- `GET/PATCH /store-settings`, `PATCH /store-settings/contact`, `PATCH /store-settings/social`
-- `GET/POST /domains`, `DELETE /domains/:id` (kelola domain tenant sendiri)
-- `GET /analytics/clicks`, `GET /analytics/clicks/by-product`, `GET /analytics/clicks/by-marketplace`
-- `GET /activity-logs`
+### 7.2 CMS API (prefix `/cms`, auth: admin, scoped ke tenant dari JWT)
+- `POST /cms/auth/login`, `POST /cms/auth/refresh`, `POST /cms/auth/logout`
+- `GET/PATCH /cms/profile`, `POST /cms/profile/change-password`
+- `GET/POST/PATCH/DELETE /cms/products`, `POST /cms/products/:id/publish`, `POST /cms/products/:id/archive`
+- `POST/DELETE /cms/products/:id/images`, `PATCH /cms/products/:id/images/reorder`
+- `GET/POST/PATCH/DELETE /cms/products/:id/variant-types`
+- `GET/POST/PATCH/DELETE /cms/products/:id/variant-types/:typeId/options`
+- `GET/POST/PATCH/DELETE /cms/products/:id/marketplace-links`
+- `GET/POST/PATCH/DELETE /cms/categories`
+- `GET/PATCH /cms/store-settings`, `PATCH /cms/store-settings/contact`, `PATCH /cms/store-settings/social`
+- `GET/POST /cms/domains`, `DELETE /cms/domains/:id` (kelola domain tenant sendiri)
+- `GET /cms/analytics/clicks`, `GET /cms/analytics/clicks/by-product`, `GET /cms/analytics/clicks/by-marketplace`
+- `GET /cms/activity-logs`
 
-### 7.3 Admin/Platform API (auth: superadmin only)
-- `GET/POST/PATCH /tenants`, `POST /tenants/:id/suspend`
-- `GET/POST/PATCH /users` (kelola admin lintas tenant), `POST /users/:id/disable`
+### 7.3 Admin/Platform API (prefix `/cms/platform`, auth: superadmin only)
+- `GET/POST/PATCH /cms/platform/tenants`, `POST /cms/platform/tenants/:id/suspend`
+- `GET/POST/PATCH /cms/platform/users` (kelola admin lintas tenant), `POST /cms/platform/users/:id/disable`
 
 ## 8. NestJS Module Structure
 
-| Module | Tanggung jawab |
-|---|---|
-| `AuthModule` | Login, refresh token, logout, JWT strategy, guards |
-| `UsersModule` | Profile, user management (admin/superadmin) |
-| `TenantsModule` | Tenant CRUD, tenant lifecycle (suspend/activate) |
-| `DomainsModule` | Domain CRUD, verifikasi, dipakai oleh `TenantMiddleware` |
-| `CategoriesModule` | Kategori CRUD |
-| `ProductsModule` | Produk CRUD, publish/archive, gallery, marketplace links |
-| `MarketplaceModule` | Redirect tracking, click analytics ingestion |
-| `AnalyticsModule` | Query/agregasi analytics untuk CMS |
-| `ActivityLogModule` | Pencatatan & query activity log (interceptor-based) |
-| `StorageModule` | `StorageProvider` interface + Local/S3 implementation |
-| `CommonModule` | Filters, pipes, interceptors, decorators (mis. `@CurrentTenant()`, `@CurrentUser()`) yang dipakai lintas module |
+Struktur folder lengkap (termasuk pemisahan presentation layer `module/store` vs `module/admin`, dan domain layer `shared/`) ada di [`folder-structure.md`](./folder-structure.md). Ringkasan tanggung jawab tiap module:
+
+| Module | Layer | Tanggung jawab |
+|---|---|---|
+| `TenantModule` | shared | `TenantMiddleware`, `TenantContext`, resolve domain → tenant |
+| `AuthModule` | shared | Login, refresh token, logout, JWT strategy |
+| `UsersModule` | shared | Profile, user management (admin/superadmin) |
+| `TenantsModule` | shared | Tenant CRUD, tenant lifecycle (suspend/activate) |
+| `DomainsModule` | shared | Domain CRUD, verifikasi |
+| `StoreSettingsModule` | shared | Store info, contact, social media |
+| `CategoriesModule` | shared | Kategori CRUD |
+| `ProductsModule` | shared | Produk CRUD, publish/archive |
+| `ProductImagesModule` | shared | Upload/delete/reorder gambar produk |
+| `ProductVariantsModule` | shared | CRUD variant type & option |
+| `MarketplaceLinksModule` | shared | CRUD marketplace link |
+| `AnalyticsModule` | shared | Click tracking (ingest) + query agregasi (CMS) |
+| `ActivityLogModule` | shared | Pencatatan & query activity log (interceptor-based) |
+| `StorageModule` | shared | `StorageProvider` interface + Local/S3 implementation |
+| `StoreModule` | presentation | Controller publik (`/store/**`), DTO response ramping |
+| `AdminModule` | presentation | Controller CMS (`/cms/**`), termasuk sub-module `platform/` untuk superadmin |
+| `CommonModule` | cross-cutting | Filters, guards, interceptors, decorators (`@CurrentTenant()`, `@CurrentUser()`, `@Roles()`) yang dipakai lintas module |
 
 ## 9. Sprint Plan
 
