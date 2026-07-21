@@ -7,6 +7,9 @@ import { DatabaseModule } from './database/database.module';
 import { CommonModule } from './common/common.module';
 import { StorageModule } from './shared/storage/storage.module';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './shared/auth/auth.module';
+import { UsersModule } from './shared/users/users.module';
+import { AdminModule } from './module/admin/admin.module';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { HealthModule } from './health/health.module';
     CommonModule,
     StorageModule,
     HealthModule,
+    UsersModule,
+    AuthModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
