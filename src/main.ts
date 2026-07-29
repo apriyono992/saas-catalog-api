@@ -7,8 +7,11 @@ import {
 } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import multipart from '@fastify/multipart';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
+
+const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -19,6 +22,10 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
+
+  await app.register(multipart, {
+    limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES },
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

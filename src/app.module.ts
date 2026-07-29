@@ -16,6 +16,8 @@ import { TenantMiddleware } from './shared/tenant/tenant.middleware';
 import { StoreSettingsModule } from './shared/store-settings/store-settings.module';
 import { CategoriesModule } from './shared/catalog/categories/categories.module';
 import { ProductsModule } from './shared/catalog/products/products.module';
+import { ProductImagesModule } from './shared/catalog/product-images/product-images.module';
+import { ProductVariantsModule } from './shared/catalog/product-variants/product-variants.module';
 import { MarketplaceLinksModule } from './shared/catalog/marketplace-links/marketplace-links.module';
 import { AnalyticsModule } from './shared/analytics/analytics.module';
 import { AdminModule } from './module/admin/admin.module';
@@ -47,6 +49,8 @@ import { StoreModule } from './module/store/store.module';
     StoreSettingsModule,
     CategoriesModule,
     ProductsModule,
+    ProductImagesModule,
+    ProductVariantsModule,
     MarketplaceLinksModule,
     AnalyticsModule,
     AdminModule,

@@ -4,9 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { isUniqueViolation } from '../../common/utils/postgres-error.util';
 import { DomainsRepository } from './domains.repository';
-
-const POSTGRES_UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class DomainsService {
@@ -24,7 +23,7 @@ export class DomainsService {
     try {
       return await this.domainsRepository.create(tenantId, normalizedHostname);
     } catch (error) {
-      if (this.isUniqueViolation(error)) {
+      if (isUniqueViolation(error)) {
         throw new ConflictException('Hostname is already in use');
       }
       throw error;
@@ -56,23 +55,5 @@ export class DomainsService {
         'This action requires a tenant-scoped account',
       );
     }
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    return this.pgErrorCode(error) === POSTGRES_UNIQUE_VIOLATION;
-  }
-
-  /** drizzle-orm wraps driver errors, so the pg error code lives on `cause`. */
-  private pgErrorCode(error: unknown): unknown {
-    if (typeof error !== 'object' || error === null) {
-      return undefined;
-    }
-    if ('code' in error) {
-      return error.code;
-    }
-    if ('cause' in error) {
-      return this.pgErrorCode(error.cause);
-    }
-    return undefined;
   }
 }
