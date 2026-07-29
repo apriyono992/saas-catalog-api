@@ -13,7 +13,13 @@ import { TenantsModule } from './shared/tenants/tenants.module';
 import { DomainsModule } from './shared/domains/domains.module';
 import { TenantModule } from './shared/tenant/tenant.module';
 import { TenantMiddleware } from './shared/tenant/tenant.middleware';
+import { StoreSettingsModule } from './shared/store-settings/store-settings.module';
+import { CategoriesModule } from './shared/catalog/categories/categories.module';
+import { ProductsModule } from './shared/catalog/products/products.module';
+import { MarketplaceLinksModule } from './shared/catalog/marketplace-links/marketplace-links.module';
+import { AnalyticsModule } from './shared/analytics/analytics.module';
 import { AdminModule } from './module/admin/admin.module';
+import { StoreModule } from './module/store/store.module';
 
 @Module({
   imports: [
@@ -38,11 +44,17 @@ import { AdminModule } from './module/admin/admin.module';
     TenantsModule,
     DomainsModule,
     TenantModule,
+    StoreSettingsModule,
+    CategoriesModule,
+    ProductsModule,
+    MarketplaceLinksModule,
+    AnalyticsModule,
     AdminModule,
+    StoreModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('store/*path');
+    consumer.apply(TenantMiddleware).forRoutes('store', 'store/*path');
   }
 }

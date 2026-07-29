@@ -2,18 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.providers';
 import type { Database } from '../../database/database.providers';
-import { tenants } from '../../database/schema';
+import { storeSettings, tenants } from '../../database/schema';
 
 @Injectable()
 export class TenantsRepository {
   constructor(@Inject(DATABASE_CONNECTION) private readonly db: Database) {}
 
+  /** Every tenant gets an (initially empty) store_settings row, so GET /store never has to handle a missing one. */
   async create(name: string) {
-    const [created] = await this.db
-      .insert(tenants)
-      .values({ name })
-      .returning();
-    return created;
+    return this.db.transaction(async (tx) => {
+      const [created] = await tx.insert(tenants).values({ name }).returning();
+      await tx.insert(storeSettings).values({ tenantId: created.id });
+      return created;
+    });
   }
 
   findById(id: string) {

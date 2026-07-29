@@ -17,4 +17,19 @@ export class TenantContextService {
   get(): TenantContextData | undefined {
     return this.storage.getStore();
   }
+
+  /** Safe to call anywhere behind TenantResolvedGuard, which guarantees context is set. */
+  getOrThrow(): TenantContextData {
+    const context = this.storage.getStore();
+    if (!context) {
+      throw new Error(
+        'Tenant context not set — ensure TenantResolvedGuard runs before this call',
+      );
+    }
+    return context;
+  }
+
+  getTenantIdOrThrow(): string {
+    return this.getOrThrow().tenantId;
+  }
 }

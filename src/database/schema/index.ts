@@ -1,5 +1,6 @@
 export * from './enums';
 export * from './tenants';
+export * from './store-settings';
 export * from './domains';
 export * from './users';
 export * from './refresh-tokens';

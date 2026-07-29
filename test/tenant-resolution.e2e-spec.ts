@@ -25,12 +25,17 @@ import { TenantMiddleware } from './../src/shared/tenant/tenant.middleware';
 import { TenantResolvedGuard } from './../src/shared/tenant/tenant-resolved.guard';
 import { TenantContextService } from './../src/shared/tenant/tenant-context.service';
 
-@Controller('store/probe')
+@Controller('store')
+@UseGuards(TenantResolvedGuard)
 class ProbeController {
   constructor(private readonly tenantContextService: TenantContextService) {}
 
   @Get()
-  @UseGuards(TenantResolvedGuard)
+  probeRoot() {
+    return this.tenantContextService.get();
+  }
+
+  @Get('probe')
   probe() {
     return this.tenantContextService.get();
   }
@@ -48,7 +53,7 @@ class ProbeController {
 })
 class TestAppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('store/*path');
+    consumer.apply(TenantMiddleware).forRoutes('store', 'store/*path');
   }
 }
 
@@ -108,5 +113,14 @@ describe('Tenant resolution (e2e)', () => {
       .get('/store/probe')
       .set('Host', 'no-such-domain.test')
       .expect(404);
+  });
+
+  it('resolves tenant context at the bare prefix route too (regression: store/*path alone does not match /store)', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/store')
+      .set('Host', hostname)
+      .expect(200);
+
+    expect(res.body).toMatchObject({ tenantId, tenantStatus: 'active' });
   });
 });

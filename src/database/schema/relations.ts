@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import { tenants } from './tenants';
+import { storeSettings } from './store-settings';
 import { domains } from './domains';
 import { users } from './users';
 import { refreshTokens } from './refresh-tokens';
@@ -12,11 +13,22 @@ import { marketplaceLinks } from './marketplace-links';
 import { productClicks } from './product-clicks';
 import { activityLogs } from './activity-logs';
 
-export const tenantsRelations = relations(tenants, ({ many }) => ({
+export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   domains: many(domains),
   users: many(users),
   categories: many(categories),
   products: many(products),
+  storeSettings: one(storeSettings, {
+    fields: [tenants.id],
+    references: [storeSettings.tenantId],
+  }),
+}));
+
+export const storeSettingsRelations = relations(storeSettings, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [storeSettings.tenantId],
+    references: [tenants.id],
+  }),
 }));
 
 export const domainsRelations = relations(domains, ({ one }) => ({
