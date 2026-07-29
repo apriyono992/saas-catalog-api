@@ -1,5 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { assertTenantScoped } from '../../../common/utils/assert-tenant-scoped.util';
+import { isUniqueViolation } from '../../../common/utils/postgres-error.util';
+import { slugify } from '../../../common/utils/slugify.util';
 import { CategoriesRepository } from './categories.repository';
+
+export interface CreateCategoryOptions {
+  name: string;
+  slug?: string;
+}
+
+export interface UpdateCategoryOptions {
+  name?: string;
+  slug?: string;
+}
 
 @Injectable()
 export class CategoriesService {
@@ -11,5 +28,80 @@ export class CategoriesService {
 
   findBySlugForTenant(tenantId: string, slug: string) {
     return this.categoriesRepository.findBySlugForTenant(tenantId, slug);
+  }
+
+  // ---- CMS API (tenantId comes straight from JWT via @CurrentTenant(), may be null for superadmin) ----
+
+  findAllForTenantCms(tenantId: string | null) {
+    assertTenantScoped(tenantId);
+    return this.categoriesRepository.findAllForTenant(tenantId);
+  }
+
+  async findByIdForTenantOrThrow(tenantId: string | null, id: string) {
+    assertTenantScoped(tenantId);
+    const category = await this.categoriesRepository.findByIdForTenant(
+      tenantId,
+      id,
+    );
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+    return category;
+  }
+
+  async create(tenantId: string | null, options: CreateCategoryOptions) {
+    assertTenantScoped(tenantId);
+    const slug =
+      options.slug ?? (await this.generateUniqueSlug(tenantId, options.name));
+
+    try {
+      return await this.categoriesRepository.create(tenantId, {
+        name: options.name,
+        slug,
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException('Slug is already in use');
+      }
+      throw error;
+    }
+  }
+
+  async update(
+    tenantId: string | null,
+    id: string,
+    options: UpdateCategoryOptions,
+  ) {
+    assertTenantScoped(tenantId);
+    await this.findByIdForTenantOrThrow(tenantId, id);
+
+    try {
+      return await this.categoriesRepository.update(tenantId, id, options);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException('Slug is already in use');
+      }
+      throw error;
+    }
+  }
+
+  async delete(tenantId: string | null, id: string) {
+    assertTenantScoped(tenantId);
+    await this.findByIdForTenantOrThrow(tenantId, id);
+    await this.categoriesRepository.delete(tenantId, id);
+  }
+
+  private async generateUniqueSlug(
+    tenantId: string,
+    name: string,
+  ): Promise<string> {
+    const base = slugify(name);
+    let candidate = base;
+    let suffix = 2;
+    while (await this.categoriesRepository.existsBySlug(tenantId, candidate)) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+    return candidate;
   }
 }

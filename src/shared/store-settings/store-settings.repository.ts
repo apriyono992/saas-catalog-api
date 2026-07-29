@@ -4,6 +4,16 @@ import { DATABASE_CONNECTION } from '../../database/database.providers';
 import type { Database } from '../../database/database.providers';
 import { storeSettings } from '../../database/schema';
 
+export interface StoreSettingsPatch {
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialInstagram?: string;
+  socialFacebook?: string;
+  socialTiktok?: string;
+  socialWhatsapp?: string;
+}
+
 @Injectable()
 export class StoreSettingsRepository {
   constructor(@Inject(DATABASE_CONNECTION) private readonly db: Database) {}
@@ -12,5 +22,18 @@ export class StoreSettingsRepository {
     return this.db.query.storeSettings.findFirst({
       where: eq(storeSettings.tenantId, tenantId),
     });
+  }
+
+  /** Self-heals tenants that predate the auto-create-on-tenant-creation transaction. */
+  async upsert(tenantId: string, data: StoreSettingsPatch) {
+    const [result] = await this.db
+      .insert(storeSettings)
+      .values({ tenantId, ...data })
+      .onConflictDoUpdate({
+        target: storeSettings.tenantId,
+        set: { ...data, updatedAt: new Date() },
+      })
+      .returning();
+    return result;
   }
 }

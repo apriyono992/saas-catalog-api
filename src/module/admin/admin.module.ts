@@ -6,6 +6,8 @@ import { ProductsModule } from '../../shared/catalog/products/products.module';
 import { ProductImagesModule } from '../../shared/catalog/product-images/product-images.module';
 import { ProductVariantsModule } from '../../shared/catalog/product-variants/product-variants.module';
 import { MarketplaceLinksModule } from '../../shared/catalog/marketplace-links/marketplace-links.module';
+import { CategoriesModule } from '../../shared/catalog/categories/categories.module';
+import { StoreSettingsModule } from '../../shared/store-settings/store-settings.module';
 import { AuthController } from './auth/auth.controller';
 import { DomainsController } from './domains/domains.controller';
 import { ProfileController } from './profile/profile.controller';
@@ -14,6 +16,8 @@ import { ProductImagesController } from './products/product-images.controller';
 import { ProductVariantTypesController } from './products/product-variant-types.controller';
 import { ProductVariantOptionsController } from './products/product-variant-options.controller';
 import { ProductMarketplaceLinksController } from './products/marketplace-links.controller';
+import { CategoriesController } from './categories/categories.controller';
+import { StoreSettingsController } from './store-settings/store-settings.controller';
 
 @Module({
   imports: [
@@ -24,6 +28,8 @@ import { ProductMarketplaceLinksController } from './products/marketplace-links.
     ProductImagesModule,
     ProductVariantsModule,
     MarketplaceLinksModule,
+    CategoriesModule,
+    StoreSettingsModule,
   ],
   controllers: [
     AuthController,
@@ -34,6 +40,8 @@ import { ProductMarketplaceLinksController } from './products/marketplace-links.
     ProductVariantTypesController,
     ProductVariantOptionsController,
     ProductMarketplaceLinksController,
+    CategoriesController,
+    StoreSettingsController,
   ],
 })
 export class AdminModule {}
