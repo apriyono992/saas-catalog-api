@@ -8,10 +8,12 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import multipart from '@fastify/multipart';
+import helmet from '@fastify/helmet';
 import { resolve } from 'node:path';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
 import { LOCAL_STORAGE_URL_PREFIX } from './shared/storage/local-storage.provider';
+import { DomainsRepository } from './shared/domains/domains.repository';
 
 const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -31,12 +33,50 @@ async function bootstrap() {
     limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES },
   });
 
+  // CSP off: this is a JSON API, and Swagger UI's inline scripts/styles
+  // conflict with Helmet's default policy. The other headers still apply.
+  await app.register(helmet, { contentSecurityPolicy: false });
+
   if (configService.get('storage.driver', { infer: true }) === 'local') {
     app.useStaticAssets({
       root: resolve(configService.get('storage.uploadDir', { infer: true })),
       prefix: `${LOCAL_STORAGE_URL_PREFIX}/`,
     });
   }
+
+  const domainsRepository = app.get(DomainsRepository);
+  const cmsAppDomain = configService
+    .get('app.cmsAppDomain', { infer: true })
+    .toLowerCase();
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      // No Origin header means a non-browser request (server-to-server,
+      // curl, mobile apps) — CORS is a browser-only mechanism, nothing to check.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      let originHost: string;
+      try {
+        originHost = new URL(origin).hostname.toLowerCase();
+      } catch {
+        callback(null, false);
+        return;
+      }
+
+      if (originHost === cmsAppDomain) {
+        callback(null, true);
+        return;
+      }
+
+      domainsRepository
+        .findByHostname(originHost)
+        .then((domain) => callback(null, !!domain))
+        .catch(() => callback(null, false));
+    },
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

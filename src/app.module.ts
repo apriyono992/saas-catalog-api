@@ -1,6 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
 import { AppConfig } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
@@ -38,6 +40,7 @@ import { StoreModule } from './module/store/store.module';
         },
       }),
     }),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 100 }]),
     DatabaseModule,
     CommonModule,
     StorageModule,
@@ -58,6 +61,7 @@ import { StoreModule } from './module/store/store.module';
     AdminModule,
     StoreModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
