@@ -16,6 +16,14 @@ export interface AppConfig {
   storage: {
     driver: 'local' | 's3';
     uploadDir: string;
+    s3: {
+      bucket: string;
+      region: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      endpoint?: string;
+      publicUrlBase?: string;
+    };
   };
 }
 
@@ -37,5 +45,13 @@ export default (): AppConfig => ({
   storage: {
     driver: (process.env.STORAGE_DRIVER as 'local' | 's3') ?? 'local',
     uploadDir: process.env.UPLOAD_DIR ?? './uploads',
+    s3: {
+      bucket: process.env.S3_BUCKET ?? '',
+      region: process.env.S3_REGION ?? 'us-east-1',
+      accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
+      endpoint: process.env.S3_ENDPOINT || undefined,
+      publicUrlBase: process.env.S3_PUBLIC_URL_BASE || undefined,
+    },
   },
 });

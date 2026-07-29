@@ -8,8 +8,10 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import multipart from '@fastify/multipart';
+import { resolve } from 'node:path';
 import { AppModule } from './app.module';
 import { AppConfig } from './config/configuration';
+import { LOCAL_STORAGE_URL_PREFIX } from './shared/storage/local-storage.provider';
 
 const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -23,9 +25,18 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
 
+  const configService = app.get(ConfigService<AppConfig, true>);
+
   await app.register(multipart, {
     limits: { fileSize: MAX_UPLOAD_FILE_SIZE_BYTES },
   });
+
+  if (configService.get('storage.driver', { infer: true }) === 'local') {
+    app.useStaticAssets({
+      root: resolve(configService.get('storage.uploadDir', { infer: true })),
+      prefix: `${LOCAL_STORAGE_URL_PREFIX}/`,
+    });
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -44,7 +55,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  const configService = app.get(ConfigService<AppConfig, true>);
   const port = configService.get('app.port', { infer: true });
   await app.listen(port, '0.0.0.0');
 }

@@ -63,6 +63,32 @@ class EnvironmentVariables {
   @IsString()
   @IsNotEmpty()
   UPLOAD_DIR: string;
+
+  // Only required at runtime when STORAGE_DRIVER=s3 — kept optional here so
+  // `local` (the default) doesn't force every deployment to configure S3.
+  @IsString()
+  @IsOptional()
+  S3_BUCKET?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_REGION?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_ACCESS_KEY_ID?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_SECRET_ACCESS_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_ENDPOINT?: string;
+
+  @IsString()
+  @IsOptional()
+  S3_PUBLIC_URL_BASE?: string;
 }
 
 export function validateEnv(config: Record<string, unknown>) {

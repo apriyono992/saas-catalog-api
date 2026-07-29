@@ -9,6 +9,9 @@ import {
   UploadedFileInput,
 } from './storage-provider.interface';
 
+/** Must match the prefix `main.ts` registers via `app.useStaticAssets()`. */
+export const LOCAL_STORAGE_URL_PREFIX = '/uploads';
+
 @Injectable()
 export class LocalStorageProvider implements StorageProvider {
   private readonly uploadDir: string;
@@ -22,14 +25,17 @@ export class LocalStorageProvider implements StorageProvider {
     await mkdir(targetDir, { recursive: true });
 
     const filename = `${randomUUID()}${extname(file.filename)}`;
-    const targetPath = join(targetDir, filename);
-    await writeFile(targetPath, file.buffer);
+    await writeFile(join(targetDir, filename), file.buffer);
 
-    return join(directory, filename);
+    return `${LOCAL_STORAGE_URL_PREFIX}/${directory}/${filename}`;
   }
 
   async delete(url: string): Promise<void> {
-    const targetPath = join(this.uploadDir, url);
-    await rm(targetPath, { force: true });
+    const prefix = `${LOCAL_STORAGE_URL_PREFIX}/`;
+    const relativePath = url.startsWith(prefix)
+      ? url.slice(prefix.length)
+      : url;
+
+    await rm(join(this.uploadDir, relativePath), { force: true });
   }
 }
