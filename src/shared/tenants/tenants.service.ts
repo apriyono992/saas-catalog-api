@@ -26,6 +26,20 @@ export class TenantsService {
     return this.tenantsRepository.updateName(id, name);
   }
 
+  async update(
+    id: string,
+    data: { name?: string; status?: 'active' | 'suspended' },
+  ) {
+    await this.findByIdOrThrow(id);
+    if (data.name !== undefined) {
+      await this.tenantsRepository.updateName(id, data.name);
+    }
+    if (data.status !== undefined) {
+      await this.tenantsRepository.updateStatus(id, data.status);
+    }
+    return this.findByIdOrThrow(id);
+  }
+
   async suspend(id: string) {
     await this.findByIdOrThrow(id);
     return this.tenantsRepository.updateStatus(id, 'suspended');

@@ -18,6 +18,7 @@ import { ProductVariantOptionsController } from './products/product-variant-opti
 import { ProductMarketplaceLinksController } from './products/marketplace-links.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { StoreSettingsController } from './store-settings/store-settings.controller';
+import { PlatformModule } from './platform/platform.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StoreSettingsController } from './store-settings/store-settings.control
     MarketplaceLinksModule,
     CategoriesModule,
     StoreSettingsModule,
+    PlatformModule,
   ],
   controllers: [
     AuthController,
