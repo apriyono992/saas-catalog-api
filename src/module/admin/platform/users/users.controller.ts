@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { LogActivity } from '../../../../common/decorators/log-activity.decorator';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
@@ -36,16 +37,19 @@ export class PlatformUsersController {
   }
 
   @Post()
+  @LogActivity('user.create', 'user')
   create(@Body() dto: CreateAdminDto) {
     return this.usersService.createAdmin(dto.tenantId, dto.email, dto.password);
   }
 
   @Patch(':id')
+  @LogActivity('user.update', 'user')
   update(@Param('id') id: string, @Body() dto: UpdateAdminDto) {
     return this.usersService.updateAdminEmail(id, dto.email);
   }
 
   @Post(':id/disable')
+  @LogActivity('user.disable', 'user')
   disable(@Param('id') id: string) {
     return this.usersService.disable(id);
   }

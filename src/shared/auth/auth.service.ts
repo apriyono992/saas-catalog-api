@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'node:crypto';
 import { AppConfig } from '../../config/configuration';
+import { ActivityLogService } from '../activity-log/activity-log.service';
 import { UsersRepository } from '../users/users.repository';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { RefreshTokenRepository } from './refresh-token.repository';
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<AppConfig, true>,
+    private readonly activityLogService: ActivityLogService,
   ) {}
 
   async login(email: string, password: string) {
@@ -38,6 +40,12 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    await this.activityLogService.record({
+      tenantId: user.tenantId,
+      userId: user.id,
+      action: 'auth.login',
+    });
 
     return this.issueTokens(user);
   }
@@ -62,8 +70,19 @@ export class AuthService {
   async logout(refreshToken: string) {
     const tokenHash = this.hashToken(refreshToken);
     const record = await this.refreshTokenRepository.findValidByHash(tokenHash);
-    if (record) {
-      await this.refreshTokenRepository.revoke(record.id);
+    if (!record) {
+      return;
+    }
+
+    await this.refreshTokenRepository.revoke(record.id);
+
+    const user = await this.usersRepository.findById(record.userId);
+    if (user) {
+      await this.activityLogService.record({
+        tenantId: user.tenantId,
+        userId: user.id,
+        action: 'auth.logout',
+      });
     }
   }
 

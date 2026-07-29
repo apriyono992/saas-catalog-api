@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { LogActivity } from '../../../common/decorators/log-activity.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CategoriesService } from '../../../shared/catalog/categories/categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -34,6 +35,7 @@ export class CategoriesController {
   }
 
   @Post()
+  @LogActivity('category.create', 'category')
   create(
     @CurrentTenant() tenantId: string | null,
     @Body() dto: CreateCategoryDto,
@@ -42,6 +44,7 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @LogActivity('category.update', 'category')
   update(
     @CurrentTenant() tenantId: string | null,
     @Param('id') id: string,
@@ -52,6 +55,7 @@ export class CategoriesController {
 
   @Delete(':id')
   @HttpCode(204)
+  @LogActivity('category.delete', 'category')
   async remove(
     @CurrentTenant() tenantId: string | null,
     @Param('id') id: string,

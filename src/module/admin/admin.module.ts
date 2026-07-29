@@ -8,6 +8,8 @@ import { ProductVariantsModule } from '../../shared/catalog/product-variants/pro
 import { MarketplaceLinksModule } from '../../shared/catalog/marketplace-links/marketplace-links.module';
 import { CategoriesModule } from '../../shared/catalog/categories/categories.module';
 import { StoreSettingsModule } from '../../shared/store-settings/store-settings.module';
+import { AnalyticsModule } from '../../shared/analytics/analytics.module';
+import { ActivityLogModule } from '../../shared/activity-log/activity-log.module';
 import { AuthController } from './auth/auth.controller';
 import { DomainsController } from './domains/domains.controller';
 import { ProfileController } from './profile/profile.controller';
@@ -19,6 +21,8 @@ import { ProductMarketplaceLinksController } from './products/marketplace-links.
 import { CategoriesController } from './categories/categories.controller';
 import { StoreSettingsController } from './store-settings/store-settings.controller';
 import { PlatformModule } from './platform/platform.module';
+import { AnalyticsController } from './analytics/analytics.controller';
+import { ActivityLogsController } from './activity-logs/activity-logs.controller';
 
 @Module({
   imports: [
@@ -31,6 +35,8 @@ import { PlatformModule } from './platform/platform.module';
     MarketplaceLinksModule,
     CategoriesModule,
     StoreSettingsModule,
+    AnalyticsModule,
+    ActivityLogModule,
     PlatformModule,
   ],
   controllers: [
@@ -44,6 +50,8 @@ import { PlatformModule } from './platform/platform.module';
     ProductMarketplaceLinksController,
     CategoriesController,
     StoreSettingsController,
+    AnalyticsController,
+    ActivityLogsController,
   ],
 })
 export class AdminModule {}

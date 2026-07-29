@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { LogActivity } from '../../../common/decorators/log-activity.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ProductsService } from '../../../shared/catalog/products/products.service';
 import { AdminListProductsQueryDto } from './dto/admin-list-products.query.dto';
@@ -39,6 +40,7 @@ export class ProductsController {
   }
 
   @Post()
+  @LogActivity('product.create', 'product')
   create(
     @CurrentTenant() tenantId: string | null,
     @Body() dto: CreateProductDto,
@@ -47,6 +49,7 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @LogActivity('product.update', 'product')
   update(
     @CurrentTenant() tenantId: string | null,
     @Param('id') id: string,
@@ -57,6 +60,7 @@ export class ProductsController {
 
   @Delete(':id')
   @HttpCode(204)
+  @LogActivity('product.delete', 'product')
   async remove(
     @CurrentTenant() tenantId: string | null,
     @Param('id') id: string,
@@ -65,11 +69,13 @@ export class ProductsController {
   }
 
   @Post(':id/publish')
+  @LogActivity('product.publish', 'product')
   publish(@CurrentTenant() tenantId: string | null, @Param('id') id: string) {
     return this.productsService.publish(tenantId, id);
   }
 
   @Post(':id/archive')
+  @LogActivity('product.archive', 'product')
   archive(@CurrentTenant() tenantId: string | null, @Param('id') id: string) {
     return this.productsService.archive(tenantId, id);
   }

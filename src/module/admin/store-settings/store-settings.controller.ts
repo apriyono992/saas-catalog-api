@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { LogActivity } from '../../../common/decorators/log-activity.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { StoreSettingsService } from '../../../shared/store-settings/store-settings.service';
 import { UpdateStoreSettingsContactDto } from './dto/update-store-settings-contact.dto';
@@ -20,6 +21,7 @@ export class StoreSettingsController {
   }
 
   @Patch()
+  @LogActivity('store_settings.update', 'store_settings')
   updateGeneral(
     @CurrentTenant() tenantId: string | null,
     @Body() dto: UpdateStoreSettingsDto,
@@ -28,6 +30,7 @@ export class StoreSettingsController {
   }
 
   @Patch('contact')
+  @LogActivity('store_settings.update_contact', 'store_settings')
   updateContact(
     @CurrentTenant() tenantId: string | null,
     @Body() dto: UpdateStoreSettingsContactDto,
@@ -36,6 +39,7 @@ export class StoreSettingsController {
   }
 
   @Patch('social')
+  @LogActivity('store_settings.update_social', 'store_settings')
   updateSocial(
     @CurrentTenant() tenantId: string | null,
     @Body() dto: UpdateStoreSettingsSocialDto,
