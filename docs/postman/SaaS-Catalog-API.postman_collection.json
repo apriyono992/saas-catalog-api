@@ -1,0 +1,2118 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    "name": "SaaS Catalog API",
+    "description": "Multi-tenant SaaS catalog backend (NestJS + Fastify + Drizzle + PostgreSQL).\n\nSee docs/API_DOCUMENTATION.md in the repo for full endpoint documentation.\n\nSetup:\n1. Import the accompanying \"SaaS Catalog API - Local\" environment and select it.\n2. Set adminEmail/adminPassword (and superadminEmail/superadminPassword) to a seeded user.\n3. Run Auth > Login (Tenant Admin) and/or Auth > Login (Superadmin) — tokens are saved automatically.\n4. For Store (Public) requests, set storeHost to a hostname registered in the domains table.\n5. Create-flow requests (categories, products, etc.) auto-save their created id to the environment for use by nested/related requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Login, refresh, and logout. No bearer token required — these routes issue credentials.",
+      "item": [
+        {
+          "name": "Login (Tenant Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cms/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cms",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Rate-limited to 5 req/min. On success, saves accessToken/refreshToken to the environment for use by every other CMS request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('accessToken', res.accessToken);",
+                  "    pm.environment.set('refreshToken', res.refreshToken);",
+                  "}",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Superadmin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cms/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cms",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Same endpoint as tenant admin login — role comes from the DB record. Saves tokens under superadminAccessToken/superadminRefreshToken so the Platform folder can use them independently of the tenant admin session.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{superadminEmail}}\",\n  \"password\": \"{{superadminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('superadminAccessToken', res.accessToken);",
+                  "    pm.environment.set('superadminRefreshToken', res.refreshToken);",
+                  "}",
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token (Tenant Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cms/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cms",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Rotates the refresh token — the old one is revoked on use.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('accessToken', res.accessToken);",
+                  "    pm.environment.set('refreshToken', res.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (Tenant Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cms/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cms",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revokes the refresh token. Returns 204 even if already invalid.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Store (Public)",
+      "description": "Public storefront — tenant resolved via the X-Tenant-Host header (falls back to X-Forwarded-Host, then Host). Set the 'storeHost' environment variable to a hostname registered in the domains table for your tenant.",
+      "item": [
+        {
+          "name": "Get Store Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Tenant (debug)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "resolve"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/products?page=1&limit=20&category={{categorySlug}}&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "{{categorySlug}}",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/products/{{productSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "products",
+                "{{productSlug}}"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Related Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/products/{{productSlug}}/related",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "products",
+                "{{productSlug}}",
+                "related"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Marketplace Redirect (track click)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/marketplace/{{marketplaceLinkId}}/redirect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "marketplace",
+                "{{marketplaceLinkId}}",
+                "redirect"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CMS (Tenant Admin)",
+      "description": "Authenticated tenant-admin routes. Uses the {{accessToken}} obtained from Auth > Login (Tenant Admin). Superadmin accounts (no tenantId) get 403 on all of these except Profile.",
+      "item": [
+        {
+          "name": "Profile",
+          "description": "Own user profile — works for any authenticated user.",
+          "item": [
+            {
+              "name": "Get Profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/profile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "profile"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Update Profile (email)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/profile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "profile"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"new-email@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Change Password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/profile/change-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "profile",
+                    "change-password"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"currentPassword\": \"CurrentPass123\",\n  \"newPassword\": \"NewPassword123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Categories",
+          "description": "Tenant product categories.",
+          "item": [
+            {
+              "name": "List Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "categories"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Create Category",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "categories"
+                  ]
+                },
+                "description": "slug is optional — auto-generated from name (slugified, de-duplicated) if omitted.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Elektronik\",\n  \"slug\": \"elektronik\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    pm.environment.set('categoryId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Category",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Elektronik & Gadget\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Category",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Products",
+          "description": "Product catalog CRUD + lifecycle (draft -> published -> archived) + nested sub-resources.",
+          "item": [
+            {
+              "name": "List Products",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products?page=1&limit=20&status=draft&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "draft",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Get Product",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products/{{productId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products",
+                    "{{productId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Create Product",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products"
+                  ]
+                },
+                "description": "Created as status \"draft\". slug is optional (auto-generated if omitted).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Kaos Polos Premium\",\n  \"slug\": \"kaos-polos-premium\",\n  \"description\": \"Kaos katun combed 30s, tersedia berbagai ukuran.\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"basePrice\": \"85000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    pm.environment.set('productId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Product",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products/{{productId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products",
+                    "{{productId}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"basePrice\": \"90000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Publish Product",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products/{{productId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products",
+                    "{{productId}}",
+                    "publish"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Archive Product",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products/{{productId}}/archive",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products",
+                    "{{productId}}",
+                    "archive"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Product",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/products/{{productId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "products",
+                    "{{productId}}"
+                  ]
+                },
+                "description": "Only allowed while status = draft (409 otherwise — archive instead)."
+              },
+              "response": []
+            },
+            {
+              "name": "Product Images",
+              "description": "Images for a single product.",
+              "item": [
+                {
+                  "name": "Upload Product Image",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/images",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "images"
+                      ]
+                    },
+                    "description": "multipart/form-data, single file field, max 5MB, image/jpeg | image/png | image/webp only. Select a file in the Body tab before sending.",
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": []
+                        }
+                      ]
+                    }
+                  },
+                  "response": [],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    pm.environment.set('imageId', pm.response.json().id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Reorder Product Images",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/images/reorder",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "images",
+                        "reorder"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"imageIds\": [\n    \"{{imageId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Product Image",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/images/{{imageId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "images",
+                        "{{imageId}}"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Product Variant Types",
+              "description": "e.g. \"Ukuran\" (Size), \"Warna\" (Color).",
+              "item": [
+                {
+                  "name": "List Variant Types",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Variant Type",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Ukuran\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": [],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    pm.environment.set('variantTypeId', pm.response.json().id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Update Variant Type",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"name\": \"Ukuran\",\n  \"sortOrder\": 0\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Variant Type",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Product Variant Options",
+              "description": "e.g. \"S\" / \"M\" / \"L\" under a variant type.",
+              "item": [
+                {
+                  "name": "List Variant Options",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}/options",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}",
+                        "options"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Variant Option",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}/options",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}",
+                        "options"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"value\": \"M\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": [],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    pm.environment.set('variantOptionId', pm.response.json().id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Update Variant Option",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}/options/{{variantOptionId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}",
+                        "options",
+                        "{{variantOptionId}}"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"value\": \"M\",\n  \"sortOrder\": 0\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Variant Option",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/variant-types/{{variantTypeId}}/options/{{variantOptionId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "variant-types",
+                        "{{variantTypeId}}",
+                        "options",
+                        "{{variantOptionId}}"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Product Marketplace Links",
+              "description": "External marketplace listings for a product (e.g. Tokopedia, Shopee).",
+              "item": [
+                {
+                  "name": "List Marketplace Links",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/marketplace-links",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "marketplace-links"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Create Marketplace Link",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/marketplace-links",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "marketplace-links"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"marketplaceName\": \"Tokopedia\",\n  \"url\": \"https://www.tokopedia.com/tokosaya/produk-a\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": [],
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    pm.environment.set('marketplaceLinkId', pm.response.json().id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Update Marketplace Link",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/marketplace-links/{{marketplaceLinkId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "marketplace-links",
+                        "{{marketplaceLinkId}}"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"marketplaceName\": \"Tokopedia\",\n  \"url\": \"https://www.tokopedia.com/tokosaya/produk-a-baru\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Marketplace Link",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/cms/products/{{productId}}/marketplace-links/{{marketplaceLinkId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "cms",
+                        "products",
+                        "{{productId}}",
+                        "marketplace-links",
+                        "{{marketplaceLinkId}}"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "response": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Domains",
+          "description": "Custom hostnames the tenant's storefront resolves on.",
+          "item": [
+            {
+              "name": "List Domains",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/domains",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "domains"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Create Domain",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/domains",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "domains"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hostname\": \"tokosaya.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    pm.environment.set('domainId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verify Domain",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/domains/{{domainId}}/verify",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "domains",
+                    "{{domainId}}",
+                    "verify"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Domain",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/domains/{{domainId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "domains",
+                    "{{domainId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Store Settings",
+          "description": "Storefront profile (description, contact, socials).",
+          "item": [
+            {
+              "name": "Get Store Settings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/store-settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "store-settings"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Update General",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/store-settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "store-settings"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Toko pakaian dan aksesoris terpercaya sejak 2020.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Contact",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/store-settings/contact",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "store-settings",
+                    "contact"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"contactEmail\": \"cs@tokosaya.com\",\n  \"contactPhone\": \"+6281234567890\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Social",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/store-settings/social",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "store-settings",
+                    "social"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"socialInstagram\": \"https://instagram.com/tokosaya\",\n  \"socialFacebook\": \"https://facebook.com/tokosaya\",\n  \"socialTiktok\": \"https://tiktok.com/@tokosaya\",\n  \"socialWhatsapp\": \"+6281234567890\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Analytics",
+          "description": "Marketplace-link click analytics.",
+          "item": [
+            {
+              "name": "Total Clicks",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/analytics/clicks?from=2026-01-01&to=2026-12-31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "analytics",
+                    "clicks"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-12-31",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Clicks By Product",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/analytics/clicks/by-product?from=2026-01-01&to=2026-12-31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "analytics",
+                    "clicks",
+                    "by-product"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-12-31",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Clicks By Marketplace",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/analytics/clicks/by-marketplace?from=2026-01-01&to=2026-12-31",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "analytics",
+                    "clicks",
+                    "by-marketplace"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-12-31",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Activity Logs",
+          "description": "Audit trail of mutating CMS actions for the tenant.",
+          "item": [
+            {
+              "name": "List Activity Logs",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/activity-logs?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "activity-logs"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Platform (Superadmin)",
+      "description": "Requires a superadmin JWT — uses {{superadminAccessToken}} obtained from Auth > Login (Superadmin). Regular tenant admins get 403.",
+      "item": [
+        {
+          "name": "Tenants",
+          "description": "Cross-tenant tenant management.",
+          "item": [
+            {
+              "name": "List Tenants",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Get Tenant",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants/{{tenantId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants",
+                    "{{tenantId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Create Tenant",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants"
+                  ]
+                },
+                "description": "Also creates an empty store_settings row for the new tenant.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Toko Saya\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    pm.environment.set('tenantId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Tenant",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants/{{tenantId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants",
+                    "{{tenantId}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Toko Saya Updated\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Suspend Tenant",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants/{{tenantId}}/suspend",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants",
+                    "{{tenantId}}",
+                    "suspend"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Activate Tenant",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/tenants/{{tenantId}}/activate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "tenants",
+                    "{{tenantId}}",
+                    "activate"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Admin Users",
+          "description": "Cross-tenant admin-user management (role=admin only; superadmins are hidden).",
+          "item": [
+            {
+              "name": "List Admin Users",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/users?tenantId={{tenantId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "tenantId",
+                      "value": "{{tenantId}}",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Get Admin User",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/users/{{adminUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "users",
+                    "{{adminUserId}}"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            },
+            {
+              "name": "Create Admin User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/users",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "users"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tenantId\": \"{{tenantId}}\",\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    pm.environment.set('adminUserId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Admin User (email)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/users/{{adminUserId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "users",
+                    "{{adminUserId}}"
+                  ]
+                },
+                "description": "",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"updated-admin@example.com\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Disable Admin User",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/cms/platform/users/{{adminUserId}}/disable",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "cms",
+                    "platform",
+                    "users",
+                    "{{adminUserId}}",
+                    "disable"
+                  ]
+                },
+                "description": ""
+              },
+              "response": []
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{superadminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Health",
+      "description": "Liveness/readiness probe.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    }
+  ]
+}
