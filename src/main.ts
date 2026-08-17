@@ -50,6 +50,7 @@ async function bootstrap() {
     .toLowerCase();
 
   app.enableCors({
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'],
     origin: (origin, callback) => {
       // No Origin header means a non-browser request (server-to-server,
       // curl, mobile apps) — CORS is a browser-only mechanism, nothing to check.
@@ -98,4 +99,7 @@ async function bootstrap() {
   const port = configService.get('app.port', { infer: true });
   await app.listen(port, '0.0.0.0');
 }
-void bootstrap();
+void bootstrap().catch((error) => {
+  console.error('Application failed to start:', error);
+  process.exit(1);
+});
