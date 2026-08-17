@@ -17,6 +17,7 @@ export const databaseProviders: Provider[] = [
     useFactory: (configService: ConfigService<AppConfig, true>): Pool =>
       new Pool({
         connectionString: configService.get('database.url', { infer: true }),
+        connectionTimeoutMillis: 5000,
       }),
   },
   {
