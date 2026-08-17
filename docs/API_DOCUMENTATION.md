@@ -129,7 +129,7 @@ Global: 100 requests / 60s per client (`ThrottlerGuard`, applied to every route)
 
 ### File upload
 
-`POST /cms/products/:id/images` accepts `multipart/form-data`, single file field, max **5 MB**, only `image/jpeg`, `image/png`, `image/webp`.
+`POST /cms/products/:id/images` and `POST /cms/categories/:id/image` accept `multipart/form-data`, single file field, max **5 MB**, only `image/jpeg`, `image/png`, `image/webp`.
 
 ### Activity logging
 
@@ -168,13 +168,31 @@ Base path: `/store`. Guard: `TenantResolvedGuard` (tenant resolved via Host head
 | `GET /store` | — | `{ name, description, contactEmail, contactPhone, socialInstagram, socialFacebook, socialTiktok, socialWhatsapp }` | Store profile for the resolved tenant |
 | `GET /store/resolve` | — | `{ tenantId, tenantStatus }` | Debug endpoint exposing the raw resolved tenant context |
 | `GET /store/products` | `page?, limit?, category?, search?` | `{ data: ProductListItem[], meta: { page, limit, total, totalPages } }` | Paginated **published** products |
+| `GET /store/products/popular` | `limit?` (default 10, max 50) | `PopularProduct[]` | Published products ranked by marketplace-link click count, descending |
 | `GET /store/products/:slug` | — | `ProductDetail` | Full detail of one published product |
 | `GET /store/products/:slug/related` | — | `ProductListItem[]` (up to 4) | Other published products in the same category |
+| `POST /store/products/by-ids` | Body: `{ ids: string[] }` (product UUIDs) | `ProductListItem[]` | Published products matching the given IDs, for hydrating a client-side favorites list. Unknown/unpublished/other-tenant IDs are silently omitted, not an error. *(Contract only — not yet implemented.)* |
+| `GET /store/categories` | — | `CategoryListItem[]` | Categories for the resolved tenant |
 | `POST /store/marketplace/:linkId/redirect` | — | `200 { url }` | Records a click event, returns the marketplace URL to redirect to |
 
 **`ProductListItem`**
 ```ts
 { id, name, slug, basePrice: string, thumbnailUrl: string | null, category: { id, name, slug } | null }
+```
+
+**`ProductsByIdsRequestDto`** (body of `POST /store/products/by-ids`)
+```ts
+{ ids: string[] /* non-empty, each a uuid v4 */ }
+```
+
+**`PopularProduct`** (extends `ProductListItem`)
+```ts
+{ ...ProductListItem, clickCount: number }
+```
+
+**`CategoryListItem`**
+```ts
+{ id, name, slug, imageUrl: string | null }
 ```
 
 **`ProductDetail`**
@@ -218,11 +236,13 @@ ChangePasswordDto   { currentPassword: string, newPassword: string /* min 8 */ }
 | `POST /cms/categories` | `CreateCategoryDto` | `Category` | ✅ `category.create` | Slug auto-generated from name if omitted |
 | `PATCH /cms/categories/:id` | `UpdateCategoryDto` | `Category` | ✅ `category.update` | `409` on slug conflict |
 | `DELETE /cms/categories/:id` | — | `204` | ✅ `category.delete` | |
+| `POST /cms/categories/:id/image` | `multipart/form-data`, 1 file field, ≤5MB, jpeg/png/webp | `Category` | ✅ `category.upload_image` | Replaces the existing image if one is set; `400` on bad file, `404` if category not found |
+| `DELETE /cms/categories/:id/image` | — | `204` | ✅ `category.delete_image` | Idempotent — still `204` if no image is set |
 
 ```ts
 CreateCategoryDto { name: string /* 1-150 */, slug?: string /* 1-160, ^[a-z0-9]+(-[a-z0-9]+)*$ */ }
 UpdateCategoryDto   // same fields, all optional (PartialType)
-Category            { id, tenantId, name, slug, createdAt, updatedAt }
+Category            { id, tenantId, name, slug, imageUrl: string | null, createdAt, updatedAt }
 ```
 
 ### 3.3 Products — `/cms/products`
@@ -422,8 +442,8 @@ Enum values (from `src/database/schema/enums.ts`):
 | Group | Count |
 |---|---|
 | Auth | 3 |
-| Store (public) | 6 |
-| CMS (tenant admin) | 42 |
+| Store (public) | 8 |
+| CMS (tenant admin) | 44 |
 | Platform (superadmin) | 11 |
 | Health | 1 |
-| **Total** | **63** |
+| **Total** | **67** |

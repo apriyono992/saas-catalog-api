@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, ilike, ne, sql, SQL } from 'drizzle-orm';
+import { and, eq, ilike, inArray, ne, sql, SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../database/database.providers';
 import type { Database } from '../../../database/database.providers';
 import { products } from '../../../database/schema';
@@ -77,6 +77,19 @@ export class ProductsRepository extends TenantScopedRepository<
     ]);
 
     return { items, total: countResult[0].count };
+  }
+
+  findManyByIdsForTenant(tenantId: string, ids: string[]) {
+    return this.db.query.products.findMany({
+      where: this.tenantScope(
+        tenantId,
+        and(eq(products.status, 'published'), inArray(products.id, ids)),
+      ),
+      with: {
+        images: { orderBy: (image, { asc }) => [asc(image.sortOrder)] },
+        category: true,
+      },
+    });
   }
 
   findPublishedBySlug(tenantId: string, slug: string) {

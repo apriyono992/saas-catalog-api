@@ -16,6 +16,7 @@ export const categories = pgTable(
       .references(() => tenants.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 150 }).notNull(),
     slug: varchar('slug', { length: 160 }).notNull(),
+    imageUrl: varchar('image_url', { length: 500 }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -13,6 +13,7 @@ export interface CreateCategoryData {
 export interface UpdateCategoryData {
   name?: string;
   slug?: string;
+  imageUrl?: string | null;
 }
 
 @Injectable()

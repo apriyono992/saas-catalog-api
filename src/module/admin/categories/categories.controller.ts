@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,9 +8,11 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import type { FastifyRequest } from 'fastify';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
 import { LogActivity } from '../../../common/decorators/log-activity.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -61,5 +64,41 @@ export class CategoriesController {
     @Param('id') id: string,
   ) {
     await this.categoriesService.delete(tenantId, id);
+  }
+
+  @Post(':id/image')
+  @ApiConsumes('multipart/form-data')
+  @LogActivity('category.upload_image', 'category')
+  async uploadImage(
+    @CurrentTenant() tenantId: string | null,
+    @Param('id') id: string,
+    @Req() request: FastifyRequest,
+  ) {
+    const multipartFile = await request.file().catch(() => undefined);
+    if (!multipartFile) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const buffer = await multipartFile.toBuffer().catch(() => {
+      throw new BadRequestException(
+        'Failed to read uploaded file (too large?)',
+      );
+    });
+
+    return this.categoriesService.uploadImage(tenantId, id, {
+      filename: multipartFile.filename,
+      buffer,
+      mimeType: multipartFile.mimetype,
+    });
+  }
+
+  @Delete(':id/image')
+  @HttpCode(204)
+  @LogActivity('category.delete_image', 'category')
+  async removeImage(
+    @CurrentTenant() tenantId: string | null,
+    @Param('id') id: string,
+  ) {
+    await this.categoriesService.removeImage(tenantId, id);
   }
 }

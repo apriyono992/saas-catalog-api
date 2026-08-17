@@ -84,6 +84,13 @@ export class ProductsService {
     return product;
   }
 
+  async findManyByIdsForTenant(tenantId: string, ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+    return this.productsRepository.findManyByIdsForTenant(tenantId, ids);
+  }
+
   async findRelated(tenantId: string, slug: string) {
     const product = await this.findPublishedBySlugOrThrow(tenantId, slug);
     if (!product.categoryId) {

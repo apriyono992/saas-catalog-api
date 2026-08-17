@@ -15,6 +15,13 @@
       "when": 1785287738218,
       "tag": "0001_far_serpent_society",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786977482806,
+      "tag": "0002_warm_silver_fox",
+      "breakpoints": true
     }
   ]
 }

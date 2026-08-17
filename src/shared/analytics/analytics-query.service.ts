@@ -29,4 +29,10 @@ export class AnalyticsQueryService {
     assertTenantScoped(tenantId);
     return this.productClicksRepository.countByMarketplace(tenantId, range);
   }
+
+  // ---- Public Store API (tenantId always pre-resolved by TenantResolvedGuard) ----
+
+  getPopularProductIds(tenantId: string, limit: number) {
+    return this.productClicksRepository.countTopByProduct(tenantId, limit);
+  }
 }

@@ -364,6 +364,44 @@
           "response": []
         },
         {
+          "name": "List Products By IDs (favorites) [NOT YET IMPLEMENTED]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-Host",
+                "value": "{{storeHost}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/store/products/by-ids",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "store",
+                "products",
+                "by-ids"
+              ]
+            },
+            "description": "Contract only — endpoint not implemented yet. Returns published ProductListItem[] matching the given IDs (unknown/unpublished/other-tenant IDs silently omitted). Used to hydrate a client-side favorites list stored by product ID.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\"{{productId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Marketplace Redirect (track click)",
           "request": {
             "method": "POST",

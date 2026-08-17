@@ -40,6 +40,25 @@ export class ProductClicksRepository {
       .orderBy(desc(sql`count(*)`));
   }
 
+  countTopByProduct(tenantId: string, limit: number) {
+    return this.db
+      .select({
+        productId: productClicks.productId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(productClicks)
+      .innerJoin(products, eq(productClicks.productId, products.id))
+      .where(
+        and(
+          eq(productClicks.tenantId, tenantId),
+          eq(products.status, 'published'),
+        ),
+      )
+      .groupBy(productClicks.productId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(limit);
+  }
+
   countByMarketplace(tenantId: string, range: DateRangeFilter) {
     return this.db
       .select({
