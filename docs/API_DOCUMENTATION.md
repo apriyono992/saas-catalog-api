@@ -171,7 +171,7 @@ Base path: `/store`. Guard: `TenantResolvedGuard` (tenant resolved via Host head
 | `GET /store/products/popular` | `limit?` (default 10, max 50) | `PopularProduct[]` | Published products ranked by marketplace-link click count, descending |
 | `GET /store/products/:slug` | — | `ProductDetail` | Full detail of one published product |
 | `GET /store/products/:slug/related` | — | `ProductListItem[]` (up to 4) | Other published products in the same category |
-| `POST /store/products/by-ids` | Body: `{ ids: string[] }` (product UUIDs) | `ProductListItem[]` | Published products matching the given IDs, for hydrating a client-side favorites list. Unknown/unpublished/other-tenant IDs are silently omitted, not an error. *(Contract only — not yet implemented.)* |
+| `POST /store/products/by-ids` | Body: `{ ids: string[] }` (product UUIDs, 1-100) | `ProductListItem[]` | Published products matching the given IDs, for hydrating a client-side favorites list. Unknown/unpublished/other-tenant IDs are silently omitted, not an error |
 | `GET /store/categories` | — | `CategoryListItem[]` | Categories for the resolved tenant |
 | `POST /store/marketplace/:linkId/redirect` | — | `200 { url }` | Records a click event, returns the marketplace URL to redirect to |
 
@@ -182,7 +182,7 @@ Base path: `/store`. Guard: `TenantResolvedGuard` (tenant resolved via Host head
 
 **`ProductsByIdsRequestDto`** (body of `POST /store/products/by-ids`)
 ```ts
-{ ids: string[] /* non-empty, each a uuid v4 */ }
+{ ids: string[] /* non-empty, max 100, each a uuid v4 */ }
 ```
 
 **`PopularProduct`** (extends `ProductListItem`)

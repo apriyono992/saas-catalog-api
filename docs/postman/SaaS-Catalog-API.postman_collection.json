@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
     "name": "SaaS Catalog API",
-    "description": "Multi-tenant SaaS catalog backend (NestJS + Fastify + Drizzle + PostgreSQL).\n\nSee docs/API_DOCUMENTATION.md in the repo for full endpoint documentation.\n\nSetup:\n1. Import the accompanying \"SaaS Catalog API - Local\" environment and select it.\n2. Set adminEmail/adminPassword (and superadminEmail/superadminPassword) to a seeded user.\n3. Run Auth > Login (Tenant Admin) and/or Auth > Login (Superadmin) — tokens are saved automatically.\n4. For Store (Public) requests, set storeHost to a hostname registered in the domains table.\n5. Create-flow requests (categories, products, etc.) auto-save their created id to the environment for use by nested/related requests.",
+    "description": "Multi-tenant SaaS catalog backend (NestJS + Fastify + Drizzle + PostgreSQL).\n\nSee docs/API_DOCUMENTATION.md in the repo for full endpoint documentation.\n\nSetup:\n1. Import the accompanying \"SaaS Catalog API - Local\" environment and select it.\n2. Set adminEmail/adminPassword (and superadminEmail/superadminPassword) to a seeded user.\n3. Run Auth > Login (Tenant Admin) and/or Auth > Login (Superadmin) \u2014 tokens are saved automatically.\n4. For Store (Public) requests, set storeHost to a hostname registered in the domains table.\n5. Create-flow requests (categories, products, etc.) auto-save their created id to the environment for use by nested/related requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -25,7 +25,7 @@
   "item": [
     {
       "name": "Auth",
-      "description": "Login, refresh, and logout. No bearer token required — these routes issue credentials.",
+      "description": "Login, refresh, and logout. No bearer token required \u2014 these routes issue credentials.",
       "item": [
         {
           "name": "Login (Tenant Admin)",
@@ -98,7 +98,7 @@
                 "login"
               ]
             },
-            "description": "Same endpoint as tenant admin login — role comes from the DB record. Saves tokens under superadminAccessToken/superadminRefreshToken so the Platform folder can use them independently of the tenant admin session.",
+            "description": "Same endpoint as tenant admin login \u2014 role comes from the DB record. Saves tokens under superadminAccessToken/superadminRefreshToken so the Platform folder can use them independently of the tenant admin session.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{superadminEmail}}\",\n  \"password\": \"{{superadminPassword}}\"\n}",
@@ -148,7 +148,7 @@
                 "refresh"
               ]
             },
-            "description": "Rotates the refresh token — the old one is revoked on use.",
+            "description": "Rotates the refresh token \u2014 the old one is revoked on use.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
@@ -217,7 +217,7 @@
     },
     {
       "name": "Store (Public)",
-      "description": "Public storefront — tenant resolved via the X-Tenant-Host header (falls back to X-Forwarded-Host, then Host). Set the 'storeHost' environment variable to a hostname registered in the domains table for your tenant.",
+      "description": "Public storefront \u2014 tenant resolved via the X-Tenant-Host header (falls back to X-Forwarded-Host, then Host). Set the 'storeHost' environment variable to a hostname registered in the domains table for your tenant.",
       "item": [
         {
           "name": "Get Store Info",
@@ -364,7 +364,7 @@
           "response": []
         },
         {
-          "name": "List Products By IDs (favorites) [NOT YET IMPLEMENTED]",
+          "name": "List Products By IDs (favorites)",
           "request": {
             "method": "POST",
             "header": [
@@ -388,7 +388,7 @@
                 "by-ids"
               ]
             },
-            "description": "Contract only — endpoint not implemented yet. Returns published ProductListItem[] matching the given IDs (unknown/unpublished/other-tenant IDs silently omitted). Used to hydrate a client-side favorites list stored by product ID.",
+            "description": "Returns published ProductListItem[] matching the given IDs (1-100, unknown/unpublished/other-tenant IDs silently omitted). Used to hydrate a client-side favorites list stored by product ID.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"ids\": [\"{{productId}}\"]\n}",
@@ -438,7 +438,7 @@
       "item": [
         {
           "name": "Profile",
-          "description": "Own user profile — works for any authenticated user.",
+          "description": "Own user profile \u2014 works for any authenticated user.",
           "item": [
             {
               "name": "Get Profile",
@@ -591,7 +591,7 @@
                     "categories"
                   ]
                 },
-                "description": "slug is optional — auto-generated from name (slugified, de-duplicated) if omitted.",
+                "description": "slug is optional \u2014 auto-generated from name (slugified, de-duplicated) if omitted.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"Elektronik\",\n  \"slug\": \"elektronik\"\n}",
@@ -876,7 +876,7 @@
                     "{{productId}}"
                   ]
                 },
-                "description": "Only allowed while status = draft (409 otherwise — archive instead)."
+                "description": "Only allowed while status = draft (409 otherwise \u2014 archive instead)."
               },
               "response": []
             },
@@ -1780,7 +1780,7 @@
     },
     {
       "name": "Platform (Superadmin)",
-      "description": "Requires a superadmin JWT — uses {{superadminAccessToken}} obtained from Auth > Login (Superadmin). Regular tenant admins get 403.",
+      "description": "Requires a superadmin JWT \u2014 uses {{superadminAccessToken}} obtained from Auth > Login (Superadmin). Regular tenant admins get 403.",
       "item": [
         {
           "name": "Tenants",

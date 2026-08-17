@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TenantResolvedGuard } from '../../../shared/tenant/tenant-resolved.guard';
 import { TenantContextService } from '../../../shared/tenant/tenant-context.service';
@@ -6,7 +14,11 @@ import { ProductsService } from '../../../shared/catalog/products/products.servi
 import { AnalyticsQueryService } from '../../../shared/analytics/analytics-query.service';
 import { ListProductsQueryDto } from '../dto/list-products.query.dto';
 import { PopularProductsQueryDto } from '../dto/popular-products.query.dto';
-import { toProductListItemDto } from '../dto/product-list-item.response.dto';
+import { ProductsByIdsDto } from '../dto/products-by-ids.dto';
+import {
+  ProductListItemResponseDto,
+  toProductListItemDto,
+} from '../dto/product-list-item.response.dto';
 import {
   PopularProductResponseDto,
   toPopularProductDto,
@@ -38,6 +50,18 @@ export class ProductsController {
       data: items.map(toProductListItemDto),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  @Post('by-ids')
+  async byIds(
+    @Body() dto: ProductsByIdsDto,
+  ): Promise<ProductListItemResponseDto[]> {
+    const tenantId = this.tenantContextService.getTenantIdOrThrow();
+    const products = await this.productsService.findManyByIdsForTenant(
+      tenantId,
+      dto.ids,
+    );
+    return products.map(toProductListItemDto);
   }
 
   // Must stay before ':slug' — otherwise ':slug' would greedily match the
