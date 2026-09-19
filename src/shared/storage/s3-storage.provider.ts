@@ -22,45 +22,43 @@ export interface S3StorageOptions {
   publicUrlBase?: string;
 }
 
-@Injectable()
-export class S3StorageProvider implements StorageProvider {
+/** Shared logic — used both by the NestJS-injected singleton and by per-tenant instances. */
+export function createS3Client(opts: S3StorageOptions): {
+  client: S3Client;
+  bucket: string;
+  publicUrlBase: string;
+} {
+  const bucket = opts.bucket || 'catalog';
+  const publicUrlBase =
+    opts.publicUrlBase?.replace(/\/$/, '') ??
+    (opts.endpoint
+      ? `${opts.endpoint.replace(/\/$/, '')}/${bucket}`
+      : `https://${bucket}.s3.${opts.region || 'us-east-1'}.amazonaws.com`);
+
+  const client = new S3Client({
+    region: opts.region || 'auto',
+    endpoint: opts.endpoint,
+    forcePathStyle: !!opts.endpoint,
+    credentials: {
+      accessKeyId: opts.accessKeyId,
+      secretAccessKey: opts.secretAccessKey,
+    },
+  });
+
+  return { client, bucket, publicUrlBase };
+}
+
+/** Single-use instance built from explicit options — NOT registered in NestJS DI. */
+export class S3StorageClient implements StorageProvider {
   private readonly client: S3Client;
   private readonly bucket: string;
   private readonly publicUrlBase: string;
 
-  constructor(config: S3StorageOptions | ConfigService<AppConfig, true>) {
-    let s3Config: S3StorageOptions;
-    if (config instanceof ConfigService) {
-      const cfg = config.get('storage.s3', { infer: true });
-      s3Config = {
-        bucket: cfg.bucket,
-        region: cfg.region || 'auto',
-        accessKeyId: cfg.accessKeyId,
-        secretAccessKey: cfg.secretAccessKey,
-        endpoint: cfg.endpoint,
-        publicUrlBase: cfg.publicUrlBase,
-      };
-    } else {
-      s3Config = config;
-    }
-
-    this.bucket = s3Config.bucket || 'catalog';
-    this.publicUrlBase =
-      s3Config.publicUrlBase?.replace(/\/$/, '') ??
-      (s3Config.endpoint
-        ? `${s3Config.endpoint.replace(/\/$/, '')}/${this.bucket}`
-        : `https://${this.bucket}.s3.${s3Config.region || 'us-east-1'}.amazonaws.com`);
-
-    this.client = new S3Client({
-      region: s3Config.region || 'auto',
-      endpoint: s3Config.endpoint,
-      // Path-style is required by Cloudflare R2 and non-AWS S3 services
-      forcePathStyle: !!s3Config.endpoint,
-      credentials: {
-        accessKeyId: s3Config.accessKeyId,
-        secretAccessKey: s3Config.secretAccessKey,
-      },
-    });
+  constructor(opts: S3StorageOptions) {
+    const { client, bucket, publicUrlBase } = createS3Client(opts);
+    this.client = client;
+    this.bucket = bucket;
+    this.publicUrlBase = publicUrlBase;
   }
 
   async upload(
@@ -69,26 +67,52 @@ export class S3StorageProvider implements StorageProvider {
     _tenantId?: string | null,
   ): Promise<string> {
     const key = `${directory}/${randomUUID()}${extname(file.filename)}`;
-
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: file.buffer,
         ContentType: file.mimeType,
-        // No ACL specified: Cloudflare R2 rejects 'public-read' header
       }),
     );
-
     return `${this.publicUrlBase}/${key}`;
   }
 
   async delete(url: string, _tenantId?: string | null): Promise<void> {
     const prefix = `${this.publicUrlBase}/`;
     const key = url.startsWith(prefix) ? url.slice(prefix.length) : url;
-
     await this.client.send(
       new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
     );
+  }
+}
+
+/** NestJS-injectable singleton — reads credentials from ConfigService. */
+@Injectable()
+export class S3StorageProvider implements StorageProvider {
+  private readonly inner: S3StorageClient;
+
+  constructor(configService: ConfigService<AppConfig, true>) {
+    const cfg = configService.get('storage.s3', { infer: true });
+    this.inner = new S3StorageClient({
+      bucket: cfg.bucket,
+      region: cfg.region || 'auto',
+      accessKeyId: cfg.accessKeyId,
+      secretAccessKey: cfg.secretAccessKey,
+      endpoint: cfg.endpoint,
+      publicUrlBase: cfg.publicUrlBase,
+    });
+  }
+
+  upload(
+    directory: string,
+    file: UploadedFileInput,
+    tenantId?: string | null,
+  ): Promise<string> {
+    return this.inner.upload(directory, file, tenantId);
+  }
+
+  delete(url: string, tenantId?: string | null): Promise<void> {
+    return this.inner.delete(url, tenantId);
   }
 }

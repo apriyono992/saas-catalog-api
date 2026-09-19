@@ -7,7 +7,7 @@ import type { Database } from '../../database/database.providers';
 import { storeSettings } from '../../database/schema';
 import { decryptSecret } from '../../common/utils/encryption.util';
 import { LocalStorageProvider, LOCAL_STORAGE_URL_PREFIX } from './local-storage.provider';
-import { S3StorageProvider, S3StorageOptions } from './s3-storage.provider';
+import { S3StorageProvider, S3StorageClient, S3StorageOptions } from './s3-storage.provider';
 import { StorageProvider, UploadedFileInput } from './storage-provider.interface';
 
 @Injectable()
@@ -35,7 +35,7 @@ export class StorageService implements StorageProvider {
     if (driver === 's3') {
       const s3Config = this.resolveS3Config(settings);
       if (s3Config) {
-        return new S3StorageProvider(s3Config);
+        return new S3StorageClient(s3Config);
       }
       return this.defaultS3StorageProvider;
     }
