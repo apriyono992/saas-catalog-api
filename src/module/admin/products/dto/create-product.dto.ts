@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -36,10 +37,23 @@ export class CreateProductDto {
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  categoryIds?: string[];
+
   @ApiPropertyOptional({ example: '75000.00' })
   @IsOptional()
   @Matches(/^\d+(\.\d{1,2})?$/, {
     message: 'basePrice must be a valid decimal amount',
   })
   basePrice?: string;
+
+  @ApiPropertyOptional({ example: '100000.00' })
+  @IsOptional()
+  @Matches(/^\d+(\.\d{1,2})?$/, {
+    message: 'strikePrice must be a valid decimal amount',
+  })
+  strikePrice?: string;
 }

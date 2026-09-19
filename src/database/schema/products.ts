@@ -28,7 +28,9 @@ export const products = pgTable(
     basePrice: numeric('base_price', { precision: 14, scale: 2 })
       .notNull()
       .default('0'),
+    strikePrice: numeric('strike_price', { precision: 14, scale: 2 }),
     status: productStatusEnum('status').notNull().default('draft'),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -48,6 +50,10 @@ export const products = pgTable(
     tenantCategoryIdx: index('products_tenant_id_category_id_idx').on(
       table.tenantId,
       table.categoryId,
+    ),
+    tenantDeletedIdx: index('products_tenant_id_deleted_at_idx').on(
+      table.tenantId,
+      table.deletedAt,
     ),
   }),
 );

@@ -20,6 +20,7 @@ import { CategoriesModule } from './shared/catalog/categories/categories.module'
 import { ProductsModule } from './shared/catalog/products/products.module';
 import { ProductImagesModule } from './shared/catalog/product-images/product-images.module';
 import { ProductVariantsModule } from './shared/catalog/product-variants/product-variants.module';
+import { MarketplacesModule } from './shared/catalog/marketplaces/marketplaces.module';
 import { MarketplaceLinksModule } from './shared/catalog/marketplace-links/marketplace-links.module';
 import { AnalyticsModule } from './shared/analytics/analytics.module';
 import { ActivityLogModule } from './shared/activity-log/activity-log.module';
@@ -55,6 +56,7 @@ import { StoreModule } from './module/store/store.module';
     ProductsModule,
     ProductImagesModule,
     ProductVariantsModule,
+    MarketplacesModule,
     MarketplaceLinksModule,
     AnalyticsModule,
     ActivityLogModule,

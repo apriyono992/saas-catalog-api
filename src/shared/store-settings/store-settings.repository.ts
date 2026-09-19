@@ -12,6 +12,14 @@ export interface StoreSettingsPatch {
   socialFacebook?: string;
   socialTiktok?: string;
   socialWhatsapp?: string;
+  bannerUrl?: string | null;
+  navbarColor?: string | null;
+  buttonColor?: string | null;
+  buttonTextColor?: string | null;
+  categoryTitle?: string | null;
+  cardColor?: string | null;
+  cardSectionColor?: string | null;
+  defaultStrikePercentage?: string | null;
 }
 
 @Injectable()

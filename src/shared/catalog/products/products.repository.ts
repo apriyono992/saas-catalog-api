@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, ilike, inArray, ne, sql, SQL } from 'drizzle-orm';
+import { and, eq, ilike, inArray, isNull, ne, sql, SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../database/database.providers';
 import type { Database } from '../../../database/database.providers';
-import { products } from '../../../database/schema';
+import { productCategories, products } from '../../../database/schema';
 import { TenantScopedRepository } from '../../../database/tenant-scoped.repository';
 
 export type ProductStatus = 'draft' | 'published' | 'archived';
@@ -11,6 +11,7 @@ export interface FindPublishedListParams {
   page: number;
   limit: number;
   categoryId?: string;
+  categoryIds?: string[];
   search?: string;
 }
 
@@ -19,6 +20,8 @@ export interface FindAllForTenantParams {
   limit: number;
   status?: ProductStatus;
   search?: string;
+  categoryId?: string;
+  categoryIds?: string[];
 }
 
 export interface CreateProductData {
@@ -26,7 +29,9 @@ export interface CreateProductData {
   slug: string;
   description?: string;
   categoryId?: string | null;
+  categoryIds?: string[];
   basePrice?: string;
+  strikePrice?: string | null;
 }
 
 export interface UpdateProductData {
@@ -34,7 +39,9 @@ export interface UpdateProductData {
   slug?: string;
   description?: string | null;
   categoryId?: string | null;
+  categoryIds?: string[];
   basePrice?: string;
+  strikePrice?: string | null;
 }
 
 @Injectable()
@@ -47,11 +54,25 @@ export class ProductsRepository extends TenantScopedRepository<
 
   async findPublishedList(
     tenantId: string,
-    { page, limit, categoryId, search }: FindPublishedListParams,
+    { page, limit, categoryId, categoryIds, search }: FindPublishedListParams,
   ) {
-    const filters: SQL[] = [eq(products.status, 'published')];
-    if (categoryId) {
-      filters.push(eq(products.categoryId, categoryId));
+    const filters: SQL[] = [eq(products.status, 'published'), isNull(products.deletedAt)];
+    if (categoryIds && categoryIds.length > 0) {
+      filters.push(
+        sql`(${products.categoryId} IN (${sql.join(categoryIds.map(id => sql`${id}`), sql`, `)}) OR EXISTS (
+          SELECT 1 FROM product_categories
+          WHERE product_categories.product_id = ${products.id}
+          AND product_categories.category_id IN (${sql.join(categoryIds.map(id => sql`${id}`), sql`, `)})
+        ))`
+      );
+    } else if (categoryId) {
+      filters.push(
+        sql`(${products.categoryId} = ${categoryId} OR EXISTS (
+          SELECT 1 FROM product_categories
+          WHERE product_categories.product_id = ${products.id}
+          AND product_categories.category_id = ${categoryId}
+        ))`
+      );
     }
     if (search) {
       filters.push(ilike(products.name, `%${search}%`));
@@ -83,7 +104,11 @@ export class ProductsRepository extends TenantScopedRepository<
     return this.db.query.products.findMany({
       where: this.tenantScope(
         tenantId,
-        and(eq(products.status, 'published'), inArray(products.id, ids)),
+        and(
+          eq(products.status, 'published'),
+          inArray(products.id, ids),
+          isNull(products.deletedAt),
+        ),
       ),
       with: {
         images: { orderBy: (image, { asc }) => [asc(image.sortOrder)] },
@@ -96,11 +121,20 @@ export class ProductsRepository extends TenantScopedRepository<
     return this.db.query.products.findFirst({
       where: this.tenantScope(
         tenantId,
-        and(eq(products.slug, slug), eq(products.status, 'published')),
+        and(
+          eq(products.slug, slug),
+          eq(products.status, 'published'),
+          isNull(products.deletedAt),
+        ),
       ),
       with: {
         images: { orderBy: (image, { asc }) => [asc(image.sortOrder)] },
         category: true,
+        productCategories: {
+          with: {
+            category: true,
+          },
+        },
         variantTypes: {
           orderBy: (variantType, { asc }) => [asc(variantType.sortOrder)],
           with: {
@@ -111,6 +145,9 @@ export class ProductsRepository extends TenantScopedRepository<
         },
         marketplaceLinks: {
           orderBy: (link, { asc }) => [asc(link.sortOrder)],
+          with: {
+            marketplace: true,
+          },
         },
       },
     });
@@ -129,6 +166,7 @@ export class ProductsRepository extends TenantScopedRepository<
           eq(products.status, 'published'),
           eq(products.categoryId, categoryId),
           ne(products.id, excludeProductId),
+          isNull(products.deletedAt),
         ),
       ),
       with: {
@@ -142,20 +180,34 @@ export class ProductsRepository extends TenantScopedRepository<
 
   async findAllForTenant(
     tenantId: string,
-    { page, limit, status, search }: FindAllForTenantParams,
+    { page, limit, status, search, categoryId, categoryIds }: FindAllForTenantParams,
   ) {
-    const filters: SQL[] = [];
+    const filters: SQL[] = [isNull(products.deletedAt)];
     if (status) {
       filters.push(eq(products.status, status));
     }
     if (search) {
       filters.push(ilike(products.name, `%${search}%`));
     }
+    if (categoryIds && categoryIds.length > 0) {
+      filters.push(
+        sql`(${products.categoryId} IN (${sql.join(categoryIds.map(id => sql`${id}`), sql`, `)}) OR EXISTS (
+          SELECT 1 FROM product_categories
+          WHERE product_categories.product_id = ${products.id}
+          AND product_categories.category_id IN (${sql.join(categoryIds.map(id => sql`${id}`), sql`, `)})
+        ))`
+      );
+    } else if (categoryId) {
+      filters.push(
+        sql`(${products.categoryId} = ${categoryId} OR EXISTS (
+          SELECT 1 FROM product_categories
+          WHERE product_categories.product_id = ${products.id}
+          AND product_categories.category_id = ${categoryId}
+        ))`
+      );
+    }
 
-    const where = this.tenantScope(
-      tenantId,
-      filters.length ? and(...filters) : undefined,
-    );
+    const where = this.tenantScope(tenantId, and(...filters));
 
     const [items, countResult] = await Promise.all([
       this.db.query.products.findMany({
@@ -179,10 +231,15 @@ export class ProductsRepository extends TenantScopedRepository<
 
   findByIdForTenant(tenantId: string, id: string) {
     return this.db.query.products.findFirst({
-      where: this.tenantScope(tenantId, eq(products.id, id)),
+      where: this.tenantScope(tenantId, and(eq(products.id, id), isNull(products.deletedAt))),
       with: {
         images: { orderBy: (image, { asc }) => [asc(image.sortOrder)] },
         category: true,
+        productCategories: {
+          with: {
+            category: true,
+          },
+        },
         variantTypes: {
           orderBy: (variantType, { asc }) => [asc(variantType.sortOrder)],
           with: {
@@ -193,6 +250,9 @@ export class ProductsRepository extends TenantScopedRepository<
         },
         marketplaceLinks: {
           orderBy: (link, { asc }) => [asc(link.sortOrder)],
+          with: {
+            marketplace: true,
+          },
         },
       },
     });
@@ -200,26 +260,58 @@ export class ProductsRepository extends TenantScopedRepository<
 
   async existsBySlug(tenantId: string, slug: string): Promise<boolean> {
     const result = await this.db.query.products.findFirst({
-      where: this.tenantScope(tenantId, eq(products.slug, slug)),
+      where: this.tenantScope(tenantId, and(eq(products.slug, slug), isNull(products.deletedAt))),
       columns: { id: true },
     });
     return !!result;
   }
 
   async create(tenantId: string, data: CreateProductData) {
+    const { categoryIds, ...productValues } = data;
     const [created] = await this.db
       .insert(products)
-      .values({ tenantId, ...data })
+      .values({ tenantId, ...productValues })
       .returning();
+
+    if (categoryIds && categoryIds.length > 0) {
+      await this.db
+        .insert(productCategories)
+        .values(
+          categoryIds.map((cId) => ({
+            productId: created.id,
+            categoryId: cId,
+          })),
+        )
+        .onConflictDoNothing();
+    }
     return created;
   }
 
   async update(tenantId: string, id: string, data: UpdateProductData) {
+    const { categoryIds, ...productValues } = data;
     const [updated] = await this.db
       .update(products)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...productValues, updatedAt: new Date() })
       .where(this.tenantScope(tenantId, eq(products.id, id)))
       .returning();
+
+    if (categoryIds !== undefined) {
+      await this.db
+        .delete(productCategories)
+        .where(eq(productCategories.productId, id));
+
+      if (categoryIds.length > 0) {
+        await this.db
+          .insert(productCategories)
+          .values(
+            categoryIds.map((cId) => ({
+              productId: id,
+              categoryId: cId,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+    }
     return updated;
   }
 
@@ -234,8 +326,9 @@ export class ProductsRepository extends TenantScopedRepository<
 
   async delete(tenantId: string, id: string) {
     const [deleted] = await this.db
-      .delete(products)
-      .where(this.tenantScope(tenantId, eq(products.id, id)))
+      .update(products)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(this.tenantScope(tenantId, and(eq(products.id, id), isNull(products.deletedAt))))
       .returning();
     return deleted;
   }

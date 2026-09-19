@@ -7,11 +7,13 @@ import { marketplaceLinks, products } from '../../../database/schema';
 export interface CreateMarketplaceLinkData {
   marketplaceName: string;
   url: string;
+  marketplaceId?: string | null;
 }
 
 export interface UpdateMarketplaceLinkData {
   marketplaceName?: string;
   url?: string;
+  marketplaceId?: string | null;
 }
 
 @Injectable()
@@ -38,6 +40,9 @@ export class MarketplaceLinksRepository {
   findAllForProduct(productId: string) {
     return this.db.query.marketplaceLinks.findMany({
       where: eq(marketplaceLinks.productId, productId),
+      with: {
+        marketplace: true,
+      },
       orderBy: (link, { asc }) => [asc(link.sortOrder)],
     });
   }
@@ -48,6 +53,9 @@ export class MarketplaceLinksRepository {
         eq(marketplaceLinks.id, id),
         eq(marketplaceLinks.productId, productId),
       ),
+      with: {
+        marketplace: true,
+      },
     });
   }
 

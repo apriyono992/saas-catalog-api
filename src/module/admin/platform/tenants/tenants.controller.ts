@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,9 +8,11 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import type { FastifyRequest } from 'fastify';
 import { Roles } from '../../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../common/guards/roles.guard';
@@ -56,6 +59,14 @@ export class PlatformTenantsController {
     return this.domainsService.create(id, dto.hostname);
   }
 
+  @Post(':id/domains/:domainId/verify')
+  verifyDomain(
+    @Param('id') id: string,
+    @Param('domainId') domainId: string,
+  ) {
+    return this.domainsService.verify(id, domainId);
+  }
+
   @Delete(':id/domains/:domainId')
   @HttpCode(204)
   async deleteDomain(
@@ -90,6 +101,30 @@ export class PlatformTenantsController {
     @Body() dto: UpdatePlatformStoreSettingsDto,
   ) {
     return this.storeSettingsService.updateForTenantById(id, dto);
+  }
+
+  @Post(':id/store-settings/banner')
+  @ApiConsumes('multipart/form-data')
+  async uploadBanner(
+    @Param('id') id: string,
+    @Req() request: FastifyRequest,
+  ) {
+    const multipartFile = await request.file().catch(() => undefined);
+    if (!multipartFile) throw new BadRequestException('No file uploaded');
+    const buffer = await multipartFile.toBuffer().catch(() => {
+      throw new BadRequestException('Failed to read uploaded file (too large?)');
+    });
+    return this.storeSettingsService.uploadBannerForTenant(id, {
+      filename: multipartFile.filename,
+      buffer,
+      mimeType: multipartFile.mimetype,
+    });
+  }
+
+  @Delete(':id/store-settings/banner')
+  @HttpCode(204)
+  async deleteBanner(@Param('id') id: string) {
+    await this.storeSettingsService.deleteBannerForTenant(id);
   }
 
   @Post(':id/suspend')

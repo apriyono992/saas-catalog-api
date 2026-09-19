@@ -14,6 +14,11 @@ export class CreateCategoryDto {
   @MaxLength(150)
   name: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  parentId?: string | null;
+
   @ApiPropertyOptional({
     description: 'Auto-generated from name when omitted',
   })

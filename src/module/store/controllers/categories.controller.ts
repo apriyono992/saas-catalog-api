@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { TenantResolvedGuard } from '../../../shared/tenant/tenant-resolved.guard';
 import { TenantContextService } from '../../../shared/tenant/tenant-context.service';
@@ -15,9 +15,18 @@ export class CategoriesController {
   ) {}
 
   @Get()
-  async list() {
+  async list(@Query('rootOnly') rootOnly?: string) {
     const tenantId = this.tenantContextService.getTenantIdOrThrow();
-    const categories = await this.categoriesService.findAllForTenant(tenantId);
+    const categories =
+      rootOnly === 'true'
+        ? await this.categoriesService.findRootsForTenant(tenantId)
+        : await this.categoriesService.findAllForTenant(tenantId);
     return categories.map(toCategoryListItemDto);
+  }
+
+  @Get(':slug')
+  async detail(@Param('slug') slug: string) {
+    const tenantId = this.tenantContextService.getTenantIdOrThrow();
+    return this.categoriesService.getCategoryDetailForStore(tenantId, slug);
   }
 }

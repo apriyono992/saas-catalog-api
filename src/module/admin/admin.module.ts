@@ -18,6 +18,8 @@ import { ProductImagesController } from './products/product-images.controller';
 import { ProductVariantTypesController } from './products/product-variant-types.controller';
 import { ProductVariantOptionsController } from './products/product-variant-options.controller';
 import { ProductMarketplaceLinksController } from './products/marketplace-links.controller';
+import { MarketplacesModule } from '../../shared/catalog/marketplaces/marketplaces.module';
+import { MarketplacesController } from './marketplaces/marketplaces.controller';
 import { CategoriesController } from './categories/categories.controller';
 import { StoreSettingsController } from './store-settings/store-settings.controller';
 import { PlatformModule } from './platform/platform.module';
@@ -38,6 +40,7 @@ import { ActivityLogsController } from './activity-logs/activity-logs.controller
     AnalyticsModule,
     ActivityLogModule,
     PlatformModule,
+    MarketplacesModule,
   ],
   controllers: [
     AuthController,
@@ -48,6 +51,7 @@ import { ActivityLogsController } from './activity-logs/activity-logs.controller
     ProductVariantTypesController,
     ProductVariantOptionsController,
     ProductMarketplaceLinksController,
+    MarketplacesController,
     CategoriesController,
     StoreSettingsController,
     AnalyticsController,

@@ -9,6 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { DomainsService } from '../../../shared/domains/domains.service';
@@ -16,7 +18,8 @@ import { CreateDomainDto } from './dto/create-domain.dto';
 
 @ApiTags('cms-domains')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('superadmin')
 @Controller('cms/domains')
 export class DomainsController {
   constructor(private readonly domainsService: DomainsService) {}

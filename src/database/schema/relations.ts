@@ -6,9 +6,11 @@ import { users } from './users';
 import { refreshTokens } from './refresh-tokens';
 import { categories } from './categories';
 import { products } from './products';
+import { productCategories } from './product-categories';
 import { productImages } from './product-images';
 import { productVariantTypes } from './product-variant-types';
 import { productVariantOptions } from './product-variant-options';
+import { marketplaces } from './marketplaces';
 import { marketplaceLinks } from './marketplace-links';
 import { productClicks } from './product-clicks';
 import { activityLogs } from './activity-logs';
@@ -53,7 +55,16 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
     fields: [categories.tenantId],
     references: [tenants.id],
   }),
+  parent: one(categories, {
+    fields: [categories.parentId],
+    references: [categories.id],
+    relationName: 'categoryHierarchy',
+  }),
+  children: many(categories, {
+    relationName: 'categoryHierarchy',
+  }),
   products: many(products),
+  productCategories: many(productCategories),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -65,11 +76,26 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     fields: [products.categoryId],
     references: [categories.id],
   }),
+  productCategories: many(productCategories),
   images: many(productImages),
   variantTypes: many(productVariantTypes),
   marketplaceLinks: many(marketplaceLinks),
   clicks: many(productClicks),
 }));
+
+export const productCategoriesRelations = relations(
+  productCategories,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productCategories.productId],
+      references: [products.id],
+    }),
+    category: one(categories, {
+      fields: [productCategories.categoryId],
+      references: [categories.id],
+    }),
+  }),
+);
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, {
@@ -99,12 +125,20 @@ export const productVariantOptionsRelations = relations(
   }),
 );
 
+export const marketplacesRelations = relations(marketplaces, ({ many }) => ({
+  marketplaceLinks: many(marketplaceLinks),
+}));
+
 export const marketplaceLinksRelations = relations(
   marketplaceLinks,
   ({ one, many }) => ({
     product: one(products, {
       fields: [marketplaceLinks.productId],
       references: [products.id],
+    }),
+    marketplace: one(marketplaces, {
+      fields: [marketplaceLinks.marketplaceId],
+      references: [marketplaces.id],
     }),
     clicks: many(productClicks),
   }),

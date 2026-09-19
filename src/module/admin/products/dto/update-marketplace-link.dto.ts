@@ -4,14 +4,19 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
 export class UpdateMarketplaceLinkDto {
   @ApiPropertyOptional()
   @IsOptional()
+  @IsUUID()
+  marketplaceId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(100)
   marketplaceName?: string;
 

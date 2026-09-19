@@ -35,7 +35,10 @@ async function bootstrap() {
 
   // CSP off: this is a JSON API, and Swagger UI's inline scripts/styles
   // conflict with Helmet's default policy. The other headers still apply.
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  });
 
   if (configService.get('storage.driver', { infer: true }) === 'local') {
     app.useStaticAssets({

@@ -3,6 +3,8 @@ export interface CategoryListItemResponseDto {
   name: string;
   slug: string;
   imageUrl: string | null;
+  parentId: string | null;
+  childrenCount?: number;
 }
 
 interface CategoryListItemSource {
@@ -10,6 +12,8 @@ interface CategoryListItemSource {
   name: string;
   slug: string;
   imageUrl: string | null;
+  parentId?: string | null;
+  children?: any[];
 }
 
 export function toCategoryListItemDto(
@@ -20,5 +24,7 @@ export function toCategoryListItemDto(
     name: category.name,
     slug: category.slug,
     imageUrl: category.imageUrl,
+    parentId: category.parentId ?? null,
+    childrenCount: category.children?.length ?? 0,
   };
 }

@@ -14,6 +14,9 @@ export const categories = pgTable(
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id').references((): any => categories.id, {
+      onDelete: 'cascade',
+    }),
     name: varchar('name', { length: 150 }).notNull(),
     slug: varchar('slug', { length: 160 }).notNull(),
     imageUrl: varchar('image_url', { length: 500 }),
