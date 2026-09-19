@@ -1,28 +1,45 @@
-FROM node:22-alpine AS base
+# Stage 1: Build
+FROM node:22-alpine AS builder
+
 WORKDIR /app
-RUN corepack enable
+
+# Install build dependencies for native modules (e.g. argon2)
+RUN apk add --no-cache python3 make g++
+
+# Enable pnpm via corepack
+RUN corepack enable && corepack prepare pnpm@10.33.4 --activate
+
+# Copy dependency manifests
 COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-FROM base AS build
+# Copy source code and build
 COPY . .
-RUN pnpm build
+RUN pnpm run build
 
-FROM node:22-alpine AS production
+# Prune devDependencies for production
+RUN pnpm prune --prod
+
+# Stage 2: Production runner
+FROM node:22-alpine AS runner
+
 WORKDIR /app
-RUN corepack enable
+
 ENV NODE_ENV=production
+ENV PORT=3000
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# Create uploads directory for local file storage
+RUN mkdir -p /app/uploads
 
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/database ./src/database
+# Copy application files
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/database ./src/database
 COPY drizzle.config.ts ./
 
 EXPOSE 3000
 
-# drizzle-kit migrate applies pending migrations on every container start
-# (per docs/plans/database-schema.md section 10) — safe to run repeatedly,
-# it no-ops once the schema is up to date.
-CMD ["sh", "-c", "node_modules/.bin/drizzle-kit migrate && node dist/main.js"]
+CMD ["node", "dist/main"]
