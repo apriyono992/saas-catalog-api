@@ -88,4 +88,42 @@ export class UpdatePlatformStoreSettingsDto {
   @IsString()
   @MaxLength(10)
   defaultStrikePercentage?: string;
+
+  @ApiPropertyOptional({ example: 'local', enum: ['local', 's3'] })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  storageDriver?: string;
+
+  @ApiPropertyOptional({ example: 'https://<account_id>.r2.cloudflarestorage.com' })
+  @IsOptional()
+  @IsString()
+  s3Endpoint?: string;
+
+  @ApiPropertyOptional({ example: 'auto' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  s3Region?: string;
+
+  @ApiPropertyOptional({ example: 'catalog' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  s3Bucket?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  s3AccessKeyId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  s3SecretAccessKey?: string;
+
+  @ApiPropertyOptional({ example: 'https://pub-xxxxxx.r2.dev' })
+  @IsOptional()
+  @IsString()
+  s3PublicUrlBase?: string;
 }

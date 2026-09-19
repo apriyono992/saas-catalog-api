@@ -20,7 +20,11 @@ export class LocalStorageProvider implements StorageProvider {
     this.uploadDir = configService.get('storage.uploadDir', { infer: true });
   }
 
-  async upload(directory: string, file: UploadedFileInput): Promise<string> {
+  async upload(
+    directory: string,
+    file: UploadedFileInput,
+    _tenantId?: string | null,
+  ): Promise<string> {
     const targetDir = join(this.uploadDir, directory);
     await mkdir(targetDir, { recursive: true });
 
@@ -30,7 +34,7 @@ export class LocalStorageProvider implements StorageProvider {
     return `${LOCAL_STORAGE_URL_PREFIX}/${directory}/${filename}`;
   }
 
-  async delete(url: string): Promise<void> {
+  async delete(url: string, _tenantId?: string | null): Promise<void> {
     const prefix = `${LOCAL_STORAGE_URL_PREFIX}/`;
     const relativePath = url.startsWith(prefix)
       ? url.slice(prefix.length)

@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { assertTenantScoped } from '../../common/utils/assert-tenant-scoped.util';
+import { encryptSecret } from '../../common/utils/encryption.util';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
@@ -55,11 +56,27 @@ export class StoreSettingsService {
 
   async getForTenantById(tenantId: string) {
     const settings = await this.storeSettingsRepository.findByTenantId(tenantId);
-    return settings ?? this.storeSettingsRepository.upsert(tenantId, {});
+    const resolved = settings ?? (await this.storeSettingsRepository.upsert(tenantId, {}));
+    return this.maskSensitiveSettings(resolved);
   }
 
-  updateForTenantById(tenantId: string, data: StoreSettingsPatch) {
-    return this.storeSettingsRepository.upsert(tenantId, data);
+  async updateForTenantById(tenantId: string, data: StoreSettingsPatch) {
+    const patch: StoreSettingsPatch = { ...data };
+    if (data.s3SecretAccessKey && data.s3SecretAccessKey.trim()) {
+      patch.s3SecretAccessKey = encryptSecret(data.s3SecretAccessKey.trim());
+    } else {
+      delete patch.s3SecretAccessKey;
+    }
+    const updated = await this.storeSettingsRepository.upsert(tenantId, patch);
+    return this.maskSensitiveSettings(updated);
+  }
+
+  private maskSensitiveSettings<T extends { s3SecretAccessKey?: string | null }>(settings: T) {
+    return {
+      ...settings,
+      hasS3SecretAccessKey: !!settings.s3SecretAccessKey,
+      s3SecretAccessKey: settings.s3SecretAccessKey ? '••••••••' : null,
+    };
   }
 
   async uploadBannerForTenant(tenantId: string, file: UploadedFileInput) {
@@ -67,10 +84,10 @@ export class StoreSettingsService {
       throw new BadRequestException('Only JPEG, PNG, WEBP, GIF, or SVG images are allowed');
     }
     const current = await this.storeSettingsRepository.findByTenantId(tenantId);
-    const url = await this.storageProvider.upload(`banners/${tenantId}`, file);
+    const url = await this.storageProvider.upload(`banners/${tenantId}`, file, tenantId);
     const updated = await this.storeSettingsRepository.upsert(tenantId, { bannerUrl: url });
     if (current?.bannerUrl) {
-      await this.storageProvider.delete(current.bannerUrl).catch(() => undefined);
+      await this.storageProvider.delete(current.bannerUrl, tenantId).catch(() => undefined);
     }
     return updated;
   }
@@ -78,7 +95,7 @@ export class StoreSettingsService {
   async deleteBannerForTenant(tenantId: string) {
     const current = await this.storeSettingsRepository.findByTenantId(tenantId);
     if (current?.bannerUrl) {
-      await this.storageProvider.delete(current.bannerUrl).catch(() => undefined);
+      await this.storageProvider.delete(current.bannerUrl, tenantId).catch(() => undefined);
     }
     return this.storeSettingsRepository.upsert(tenantId, { bannerUrl: null });
   }

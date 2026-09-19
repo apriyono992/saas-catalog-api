@@ -64,6 +64,13 @@
       "when": 1789850208386,
       "tag": "0008_flaky_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789853953613,
+      "tag": "0009_quick_spirit",
+      "breakpoints": true
     }
   ]
 }

@@ -187,13 +187,13 @@ export class CategoriesService {
     }
 
     const category = await this.findByIdForTenantOrThrow(tenantId, id);
-    const url = await this.storageProvider.upload(`categories/${id}`, file);
+    const url = await this.storageProvider.upload(`categories/${id}`, file, tenantId);
     const updated = await this.categoriesRepository.update(tenantId, id, {
       imageUrl: url,
     });
 
     if (category.imageUrl) {
-      await this.storageProvider.delete(category.imageUrl);
+      await this.storageProvider.delete(category.imageUrl, tenantId);
     }
 
     return updated;
@@ -205,7 +205,7 @@ export class CategoriesService {
     await this.categoriesRepository.update(tenantId, id, { imageUrl: null });
 
     if (category.imageUrl) {
-      await this.storageProvider.delete(category.imageUrl);
+      await this.storageProvider.delete(category.imageUrl, tenantId);
     }
   }
 

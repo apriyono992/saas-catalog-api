@@ -30,6 +30,13 @@ export const storeSettings = pgTable(
     cardColor: varchar('card_color', { length: 50 }),
     cardSectionColor: varchar('card_section_color', { length: 50 }),
     defaultStrikePercentage: varchar('default_strike_percentage', { length: 10 }).default('35'),
+    storageDriver: varchar('storage_driver', { length: 20 }).default('local'),
+    s3Endpoint: text('s3_endpoint'),
+    s3Region: varchar('s3_region', { length: 50 }).default('auto'),
+    s3Bucket: varchar('s3_bucket', { length: 255 }),
+    s3AccessKeyId: text('s3_access_key_id'),
+    s3SecretAccessKey: text('s3_secret_access_key'),
+    s3PublicUrlBase: text('s3_public_url_base'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

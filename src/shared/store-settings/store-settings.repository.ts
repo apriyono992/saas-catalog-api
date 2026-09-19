@@ -20,6 +20,13 @@ export interface StoreSettingsPatch {
   cardColor?: string | null;
   cardSectionColor?: string | null;
   defaultStrikePercentage?: string | null;
+  storageDriver?: string | null;
+  s3Endpoint?: string | null;
+  s3Region?: string | null;
+  s3Bucket?: string | null;
+  s3AccessKeyId?: string | null;
+  s3SecretAccessKey?: string | null;
+  s3PublicUrlBase?: string | null;
 }
 
 @Injectable()

@@ -38,6 +38,7 @@ export class ProductImagesService {
     const url = await this.storageProvider.upload(
       `products/${productId}`,
       file,
+      tenantId,
     );
     const sortOrder =
       await this.productImagesRepository.nextSortOrder(productId);
@@ -56,7 +57,7 @@ export class ProductImagesService {
     }
 
     await this.productImagesRepository.delete(imageId);
-    await this.storageProvider.delete(image.url);
+    await this.storageProvider.delete(image.url, tenantId);
   }
 
   async reorder(
