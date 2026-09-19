@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../database/database.providers';
 import type { Database } from '../../../database/database.providers';
 import { categories } from '../../../database/schema';
@@ -172,5 +172,49 @@ export class CategoriesRepository extends TenantScopedRepository<
       .where(this.tenantScope(tenantId, eq(categories.id, id)))
       .returning();
     return deleted;
+  }
+
+  async getProductCountsForTenant(
+    tenantId: string,
+    onlyPublished = true,
+  ): Promise<Map<string, number>> {
+    const statusFilter = onlyPublished ? sql`AND p.status = 'published'` : sql``;
+    const query = sql`
+      WITH RECURSIVE cat_tree(root_id, descendant_id) AS (
+        SELECT id, id
+        FROM categories
+        WHERE tenant_id = ${tenantId}
+        UNION ALL
+        SELECT ct.root_id, c.id
+        FROM categories c
+        JOIN cat_tree ct ON c.parent_id = ct.descendant_id
+        WHERE c.tenant_id = ${tenantId}
+      ),
+      prod_assignments AS (
+        SELECT p.id as product_id, p.category_id as category_id
+        FROM products p
+        WHERE p.tenant_id = ${tenantId} AND p.deleted_at IS NULL ${statusFilter}
+        UNION
+        SELECT pc.product_id, pc.category_id
+        FROM product_categories pc
+        JOIN products p ON p.id = pc.product_id
+        WHERE p.tenant_id = ${tenantId} AND p.deleted_at IS NULL ${statusFilter}
+      )
+      SELECT 
+        c.id,
+        COUNT(DISTINCT pa.product_id)::int as product_count
+      FROM categories c
+      LEFT JOIN cat_tree ct ON ct.root_id = c.id
+      LEFT JOIN prod_assignments pa ON pa.category_id = ct.descendant_id
+      WHERE c.tenant_id = ${tenantId}
+      GROUP BY c.id;
+    `;
+
+    const res = await this.db.execute<{ id: string; product_count: number }>(query);
+    const map = new Map<string, number>();
+    for (const row of res.rows) {
+      map.set(row.id, Number(row.product_count));
+    }
+    return map;
   }
 }

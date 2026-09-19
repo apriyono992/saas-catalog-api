@@ -5,6 +5,7 @@ export interface CategoryListItemResponseDto {
   imageUrl: string | null;
   parentId: string | null;
   childrenCount?: number;
+  productCount?: number;
 }
 
 interface CategoryListItemSource {
@@ -18,6 +19,7 @@ interface CategoryListItemSource {
 
 export function toCategoryListItemDto(
   category: CategoryListItemSource,
+  productCount = 0,
 ): CategoryListItemResponseDto {
   return {
     id: category.id,
@@ -26,5 +28,6 @@ export function toCategoryListItemDto(
     imageUrl: category.imageUrl,
     parentId: category.parentId ?? null,
     childrenCount: category.children?.length ?? 0,
+    productCount,
   };
 }

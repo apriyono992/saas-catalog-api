@@ -61,10 +61,11 @@ export class CategoriesService {
       throw new NotFoundException('Category not found');
     }
 
-    const [depth, ancestors, children] = await Promise.all([
+    const [depth, ancestors, children, counts] = await Promise.all([
       this.categoriesRepository.getCategoryDepth(tenantId, category.id),
       this.categoriesRepository.getAncestors(tenantId, category.id),
       this.categoriesRepository.findChildrenForTenant(tenantId, category.id),
+      this.categoriesRepository.getProductCountsForTenant(tenantId, true),
     ]);
 
     return {
@@ -73,6 +74,7 @@ export class CategoriesService {
       slug: category.slug,
       imageUrl: category.imageUrl,
       parentId: category.parentId,
+      productCount: counts.get(category.id) ?? 0,
       depth,
       ancestors,
       children: children.map((c) => ({
@@ -80,6 +82,7 @@ export class CategoriesService {
         name: c.name,
         slug: c.slug,
         imageUrl: c.imageUrl,
+        productCount: counts.get(c.id) ?? 0,
       })),
     };
   }
@@ -88,11 +91,22 @@ export class CategoriesService {
     return this.categoriesRepository.getDescendantCategoryIds(tenantId, categoryId);
   }
 
+  getProductCountsForTenant(tenantId: string, onlyPublished = true) {
+    return this.categoriesRepository.getProductCountsForTenant(tenantId, onlyPublished);
+  }
+
   // ---- CMS API (tenantId comes straight from JWT via @CurrentTenant(), may be null for superadmin) ----
 
-  findAllForTenantCms(tenantId: string | null) {
+  async findAllForTenantCms(tenantId: string | null) {
     assertTenantScoped(tenantId);
-    return this.categoriesRepository.findAllForTenant(tenantId);
+    const [categories, counts] = await Promise.all([
+      this.categoriesRepository.findAllForTenant(tenantId),
+      this.categoriesRepository.getProductCountsForTenant(tenantId, false),
+    ]);
+    return categories.map((c) => ({
+      ...c,
+      productCount: counts.get(c.id) ?? 0,
+    }));
   }
 
   async findByIdForTenantOrThrow(tenantId: string | null, id: string) {

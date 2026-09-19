@@ -17,11 +17,13 @@ export class CategoriesController {
   @Get()
   async list(@Query('rootOnly') rootOnly?: string) {
     const tenantId = this.tenantContextService.getTenantIdOrThrow();
-    const categories =
+    const [categories, counts] = await Promise.all([
       rootOnly === 'true'
-        ? await this.categoriesService.findRootsForTenant(tenantId)
-        : await this.categoriesService.findAllForTenant(tenantId);
-    return categories.map(toCategoryListItemDto);
+        ? this.categoriesService.findRootsForTenant(tenantId)
+        : this.categoriesService.findAllForTenant(tenantId),
+      this.categoriesService.getProductCountsForTenant(tenantId, true),
+    ]);
+    return categories.map((c) => toCategoryListItemDto(c, counts.get(c.id) ?? 0));
   }
 
   @Get(':slug')
