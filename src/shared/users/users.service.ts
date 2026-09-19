@@ -108,10 +108,27 @@ export class UsersService {
     return this.toProfile(updated);
   }
 
+  async resetAdminPassword(id: string, newPassword: string) {
+    await this.findAdminOrThrow(id);
+    const passwordHash = (await argon2.hash(newPassword)) as string;
+    await this.usersRepository.updatePasswordHash(id, passwordHash);
+  }
+
+  async setAdminActive(id: string, isActive: boolean) {
+    await this.findAdminOrThrow(id);
+    const updated = await this.usersRepository.setActive(id, isActive);
+    return this.toProfile(updated);
+  }
+
   async disable(id: string) {
     await this.findAdminOrThrow(id);
     const updated = await this.usersRepository.setActive(id, false);
     return this.toProfile(updated);
+  }
+
+  async deleteAdmin(id: string) {
+    await this.findAdminOrThrow(id);
+    await this.usersRepository.softDelete(id);
   }
 
   /** role check hides superadmin accounts from this admin-management surface */

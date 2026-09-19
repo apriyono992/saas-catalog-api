@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database.providers';
 import type { Database } from '../../database/database.providers';
 import { users } from '../../database/schema';
@@ -10,13 +10,13 @@ export class UsersRepository {
 
   findByEmail(email: string) {
     return this.db.query.users.findFirst({
-      where: eq(users.email, email),
+      where: and(eq(users.email, email), isNull(users.deletedAt)),
     });
   }
 
   findById(id: string) {
     return this.db.query.users.findFirst({
-      where: eq(users.id, id),
+      where: and(eq(users.id, id), isNull(users.deletedAt)),
     });
   }
 
@@ -51,8 +51,8 @@ export class UsersRepository {
   findAllAdmins(tenantId?: string) {
     return this.db.query.users.findMany({
       where: tenantId
-        ? and(eq(users.role, 'admin'), eq(users.tenantId, tenantId))
-        : eq(users.role, 'admin'),
+        ? and(eq(users.role, 'admin'), eq(users.tenantId, tenantId), isNull(users.deletedAt))
+        : and(eq(users.role, 'admin'), isNull(users.deletedAt)),
       orderBy: (user, { desc }) => [desc(user.createdAt)],
     });
   }
@@ -61,6 +61,15 @@ export class UsersRepository {
     const [updated] = await this.db
       .update(users)
       .set({ isActive, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async softDelete(id: string) {
+    const [updated] = await this.db
+      .update(users)
+      .set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return updated;

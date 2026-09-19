@@ -28,6 +28,17 @@ export class StoreSettingsService {
     };
   }
 
+  // ---- Platform API (superadmin managing store settings for any tenant by id) ----
+
+  async getForTenantById(tenantId: string) {
+    const settings = await this.storeSettingsRepository.findByTenantId(tenantId);
+    return settings ?? this.storeSettingsRepository.upsert(tenantId, {});
+  }
+
+  updateForTenantById(tenantId: string, data: StoreSettingsPatch) {
+    return this.storeSettingsRepository.upsert(tenantId, data);
+  }
+
   // ---- CMS API (tenantId comes straight from JWT via @CurrentTenant(), may be null for superadmin) ----
 
   async getForTenant(tenantId: string | null) {

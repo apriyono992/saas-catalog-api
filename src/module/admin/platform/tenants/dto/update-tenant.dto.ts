@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from 'class-validator';
 
@@ -21,4 +22,14 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsIn(TENANT_STATUSES)
   status?: (typeof TENANT_STATUSES)[number];
+
+  @ApiPropertyOptional({ example: 'tokosaya.com' })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  @Matches(/^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/i, {
+    message: 'domain must be a valid hostname, e.g. tokosaya.com',
+  })
+  domain?: string;
 }

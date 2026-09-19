@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -16,6 +18,8 @@ import { RolesGuard } from '../../../../common/guards/roles.guard';
 import { UsersService } from '../../../../shared/users/users.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { ListAdminsQueryDto } from './dto/list-admins.query.dto';
+import { ResetAdminPasswordDto } from './dto/reset-admin-password.dto';
+import { SetAdminStatusDto } from './dto/set-admin-status.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 
 @ApiTags('cms-platform-users')
@@ -46,6 +50,25 @@ export class PlatformUsersController {
   @LogActivity('user.update', 'user')
   update(@Param('id') id: string, @Body() dto: UpdateAdminDto) {
     return this.usersService.updateAdminEmail(id, dto.email);
+  }
+
+  @Patch(':id/password')
+  @LogActivity('user.reset_password', 'user')
+  resetPassword(@Param('id') id: string, @Body() dto: ResetAdminPasswordDto) {
+    return this.usersService.resetAdminPassword(id, dto.newPassword);
+  }
+
+  @Patch(':id/status')
+  @LogActivity('user.set_status', 'user')
+  setStatus(@Param('id') id: string, @Body() dto: SetAdminStatusDto) {
+    return this.usersService.setAdminActive(id, dto.isActive);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @LogActivity('user.delete', 'user')
+  async delete(@Param('id') id: string) {
+    await this.usersService.deleteAdmin(id);
   }
 
   @Post(':id/disable')

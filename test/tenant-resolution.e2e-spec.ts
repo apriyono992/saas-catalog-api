@@ -98,7 +98,7 @@ describe('Tenant resolution (e2e)', () => {
     expect(res.body).toMatchObject({ tenantId, tenantStatus: 'active' });
   });
 
-  it('resolves tenant via X-Tenant-Host even when Host differs', async () => {
+  it('resolves tenant via X-Tenant-Host even when Host differs (in dev)', async () => {
     const res = await request(app.getHttpServer())
       .get('/store/probe')
       .set('Host', 'unrelated.test')
